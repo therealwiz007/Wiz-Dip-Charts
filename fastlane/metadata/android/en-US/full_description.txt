@@ -1,0 +1,14 @@
+Wiz Dip Charts is a simple, offline tank dip calculator designed to look up tank volume from a dip reading and estimate dip from a target volume using the included calibration charts.
+
+FEATURES
+• Dip to Volume: enter a dip in centimetres and read the corresponding chart volume in litres.
+• Volume to Dip: enter a volume and find the corresponding interpolated dip.
+• Decimal interpolation between adjacent whole-centimetre chart rows.
+• Tank specifications including diameter, length, P1, P2 and deadwood.
+• Offline operation — calibration data is stored on the device.
+• Remembers your last selected tank and dip entry.
+• Light and dark appearance follows your device setting.
+
+Wiz Dip Charts uses the chart values directly. Deadwood is shown as tank information and is not separately added to or subtracted from the chart lookup. Always verify calibration data against the approved chart for the specific tank before operational use.
+
+Made by Wiz Labs.

@@ -22,11 +22,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Menu
@@ -69,7 +67,7 @@ private const val KEY_LAST_DIP = "last_dip_cm"
 
 private const val APP_ID = "com.wizlabs.wizdipcharts"
 
-/** Replace with your real Play Store link once the app is published. */
+/** Play Store listing URL; works once the app listing is published. */
 private const val SHARE_LINK = "https://play.google.com/store/apps/details?id=$APP_ID"
 
 class MainActivity : ComponentActivity() {
@@ -132,12 +130,12 @@ fun TankDipApp(tanks: List<Tank>) {
         },
     ) {
         Box(Modifier.fillMaxSize().background(pal.bg).safeDrawingPadding()) {
-            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
-                IconButton(onClick = { scope.launch { drawerState.open() } }) {
+            Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+                IconButton(onClick = { scope.launch { drawerState.open() } }, modifier = Modifier.size(40.dp)) {
                     Icon(Icons.Default.Menu, contentDescription = "Menu", tint = pal.blue)
                 }
-                Text("Wiz Dip Charts", color = pal.label, fontSize = 34.sp, fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(start = 4.dp, bottom = 16.dp))
+                Text("Wiz Dip Charts", color = pal.label, fontSize = 30.sp, fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(start = 4.dp, bottom = 10.dp))
 
                 SegmentedControl(
                     options = listOf("Dip → Volume", "Volume → Dip"),
@@ -159,15 +157,15 @@ fun TankDipApp(tanks: List<Tank>) {
 
                 SectionLabel("SPECIFICATIONS", pal)
                 Card(pal) {
-                    SpecRow("Diameter", "${tank.diameterCm} cm", pal)
+                    SpecRow("Diameter", "${tank.diameterCm} cm", pal, compact = true)
                     Divider(pal)
-                    SpecRow("Length", "${tank.lengthCm} cm", pal)
+                    SpecRow("Length", "${tank.lengthCm} cm", pal, compact = true)
                     Divider(pal)
-                    SpecRow("P1", "${tank.p1Cm} cm", pal)
-                    Divider(pal)
-                    SpecRow("P2", "${tank.p2Cm} cm", pal)
-                    Divider(pal)
-                    SpecRow("Deadwood", "${tank.deadwoodLitres} L", pal)
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                        MiniSpec("P1", "${tank.p1Cm} cm", pal)
+                        MiniSpec("P2", "${tank.p2Cm} cm", pal)
+                        MiniSpec("Deadwood", "${tank.deadwoodLitres} L", pal)
+                    }
                 }
 
                 if (!reverse) {
@@ -204,7 +202,7 @@ fun TankDipApp(tanks: List<Tank>) {
                         )
                     }
                     Text(
-                        "Final volume in litres (after deadwood). The dip is interpolated between chart rows.",
+                        "Enter the chart volume in litres. The dip is interpolated between chart rows.",
                         color = pal.secondary, fontSize = 13.sp,
                         modifier = Modifier.padding(start = 16.dp, top = 6.dp, end = 16.dp),
                     )
@@ -212,7 +210,7 @@ fun TankDipApp(tanks: List<Tank>) {
                     SectionLabel("DIP", pal)
                     DipResultCard(Calibration.dipForVolume(tank, volumeText), pal)
                 }
-                Spacer(Modifier.height(32.dp))
+                Spacer(Modifier.height(8.dp))
             }
         }
     }
@@ -220,7 +218,7 @@ fun TankDipApp(tanks: List<Tank>) {
 
 @Composable
 private fun NumberField(value: String, unit: String, maxLength: Int, pal: Pal, onChange: (String) -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically) {
         BasicTextField(
             value = value,
@@ -229,14 +227,14 @@ private fun NumberField(value: String, unit: String, maxLength: Int, pal: Pal, o
             },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            textStyle = TextStyle(color = pal.label, fontSize = 34.sp, fontWeight = FontWeight.SemiBold),
+            textStyle = TextStyle(color = pal.label, fontSize = 30.sp, fontWeight = FontWeight.SemiBold),
             cursorBrush = SolidColor(pal.blue),
             modifier = Modifier.weight(1f),
             decorationBox = { inner ->
                 Box {
                     if (value.isEmpty()) {
                         Text("0.0", color = pal.secondary.copy(alpha = 0.5f),
-                            fontSize = 34.sp, fontWeight = FontWeight.SemiBold)
+                            fontSize = 30.sp, fontWeight = FontWeight.SemiBold)
                     }
                     inner()
                 }
@@ -297,12 +295,11 @@ private fun DipResultCard(result: DipForVolumeResult, pal: Pal) {
     Card(pal) {
         when (result) {
             is DipForVolumeResult.Ok -> {
-                Column(Modifier.fillMaxWidth().padding(vertical = 20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(dipFmt.format(result.dipCm), color = pal.label, fontSize = 48.sp, fontWeight = FontWeight.Bold)
+                Column(Modifier.fillMaxWidth().padding(vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(dipFmt.format(result.dipCm), color = pal.label, fontSize = 40.sp, fontWeight = FontWeight.Bold)
                     Text("cm", color = pal.secondary, fontSize = 17.sp)
                 }
-                Divider(pal)
-                SpecRow("Chart volume", "${numberFmt.format(result.chartVolume)} L", pal)
+                Text("CALCULATED FROM CALIBRATION CHART", color = pal.secondary, fontSize = 11.sp, modifier = Modifier.padding(bottom = 8.dp))
             }
             DipForVolumeResult.Empty -> Hint("Enter a volume to see the dip", pal)
             DipForVolumeResult.Invalid -> Hint("Enter a valid number", pal, error = true)
@@ -317,14 +314,11 @@ private fun ResultCard(result: DipResult, pal: Pal) {
     Card(pal) {
         when (result) {
             is DipResult.Ok -> {
-                Column(Modifier.fillMaxWidth().padding(vertical = 20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(numberFmt.format(result.netVolume), color = pal.label, fontSize = 48.sp, fontWeight = FontWeight.Bold)
+                Column(Modifier.fillMaxWidth().padding(vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(numberFmt.format(result.netVolume), color = pal.label, fontSize = 40.sp, fontWeight = FontWeight.Bold)
                     Text("litres", color = pal.secondary, fontSize = 17.sp)
                 }
-                Divider(pal)
-                SpecRow("Chart volume", "${numberFmt.format(result.chartVolume)} L", pal)
-                Divider(pal)
-                SpecRow("Deadwood", "− ${numberFmt.format(result.deadwood)} L", pal)
+                Text("CALIBRATION CHART VOLUME", color = pal.secondary, fontSize = 11.sp, modifier = Modifier.padding(bottom = 8.dp))
             }
             DipResult.Empty -> Hint("Enter a dip to see the volume", pal)
             DipResult.Invalid -> Hint("Enter a valid number", pal, error = true)
@@ -335,7 +329,7 @@ private fun ResultCard(result: DipResult, pal: Pal) {
 
 @Composable
 private fun Hint(text: String, pal: Pal, error: Boolean = false) {
-    Box(Modifier.fillMaxWidth().padding(vertical = 28.dp, horizontal = 16.dp), contentAlignment = Alignment.Center) {
+    Box(Modifier.fillMaxWidth().padding(vertical = 16.dp, horizontal = 16.dp), contentAlignment = Alignment.Center) {
         Text(text, color = if (error) Color(0xFFFF3B30) else pal.secondary, fontSize = 17.sp)
     }
 }
@@ -366,7 +360,7 @@ private fun TankPicker(tanks: List<Tank>, selected: Tank, pal: Pal, onPick: (Tan
 @Composable
 private fun SectionLabel(text: String, pal: Pal) {
     Text(text, color = pal.secondary, fontSize = 13.sp,
-        modifier = Modifier.padding(start = 16.dp, top = 22.dp, bottom = 6.dp))
+        modifier = Modifier.padding(start = 16.dp, top = 10.dp, bottom = 4.dp))
 }
 
 @Composable
@@ -375,10 +369,18 @@ private fun Card(pal: Pal, content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun SpecRow(label: String, value: String, pal: Pal) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 13.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+private fun SpecRow(label: String, value: String, pal: Pal, compact: Boolean = false) {
+    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = if (compact) 7.dp else 13.dp), horizontalArrangement = Arrangement.SpaceBetween) {
         Text(label, color = pal.label, fontSize = 17.sp)
         Text(value, color = pal.secondary, fontSize = 17.sp)
+    }
+}
+
+@Composable
+private fun MiniSpec(label: String, value: String, pal: Pal) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(label, color = pal.secondary, fontSize = 12.sp)
+        Text(value, color = pal.label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 

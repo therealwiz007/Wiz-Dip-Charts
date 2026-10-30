@@ -53,7 +53,7 @@ object Calibration {
         return v0 + frac * (v1 - v0)
     }
 
-    /** Final volume = interpolated chart volume minus deadwood (never below zero). */
+    /** The calibration chart value is used directly; deadwood is display metadata only. */
     fun compute(tank: Tank, input: String): DipResult {
         val text = input.trim().replace(',', '.')
         if (text.isEmpty()) return DipResult.Empty
@@ -61,27 +61,25 @@ object Calibration {
         if (dip.isNaN() || dip < 0.0) return DipResult.Invalid
         if (dip > tank.maxDipCm) return DipResult.OutOfRange(tank.maxDipCm)
         val chart = chartVolume(tank, dip)
-        val dead = tank.deadwoodLitres.toDouble()
-        return DipResult.Ok(chart, dead, maxOf(0.0, chart - dead))
+        return DipResult.Ok(chart, 0.0, chart)
     }
 
     /**
-     * Reverse lookup: the dip (cm) that gives the entered final volume (litres).
-     * Chart volume = entered volume + deadwood, then inverse linear interpolation.
+     * Reverse lookup: find the dip (cm) for the entered chart volume (litres).
+     * No deadwood adjustment is applied.
      */
     fun dipForVolume(tank: Tank, input: String): DipForVolumeResult {
         val text = input.trim().replace(',', '.')
         if (text.isEmpty()) return DipForVolumeResult.Empty
-        val net = text.toDoubleOrNull() ?: return DipForVolumeResult.Invalid
-        if (net.isNaN() || net < 0.0) return DipForVolumeResult.Invalid
+        val target = text.toDoubleOrNull() ?: return DipForVolumeResult.Invalid
+        if (target.isNaN() || target < 0.0) return DipForVolumeResult.Invalid
 
         val v = tank.volumes
         val max = tank.maxDipCm
-        val target = net + tank.deadwoodLitres
         if (target > v[max] + 1e-9) {
-            return DipForVolumeResult.OutOfRange(v[max] - tank.deadwoodLitres)
+            return DipForVolumeResult.OutOfRange(v[max])
         }
-        if (target >= v[max]) return DipForVolumeResult.Ok(max.toDouble(), target)
+        if (target >= v[max]) return DipForVolumeResult.Ok(max.toDouble(), v[max])
 
         // largest lo in [0, max-1] with v[lo] <= target (v is strictly increasing)
         var lo = 0
@@ -115,7 +113,7 @@ object Calibration {
             require(values.size >= 2 && o.optInt("maxDipCm", values.size - 1) == values.size - 1) { "Invalid dip range for ${tank.kl} KL." }
             require(kotlin.math.abs(values.first()) < 1e-9) { "Chart for ${tank.kl} KL must start at zero litres." }
             require(values.all { it.isFinite() && it >= 0.0 }) { "Invalid chart volume in ${tank.kl} KL." }
-            require(values.zipWithNext().all { (a, b) -> b > a }) { "Chart for ${tank.kl} KL must be strictly increasing." }
+            require((1 until values.size).all { index -> values[index] > values[index - 1] }) { "Chart for ${tank.kl} KL must be strictly increasing." }
             require(tank.deadwoodLitres >= 0 && tank.deadwoodLitres < values.last()) { "Invalid deadwood for ${tank.kl} KL." }
             tank
         }

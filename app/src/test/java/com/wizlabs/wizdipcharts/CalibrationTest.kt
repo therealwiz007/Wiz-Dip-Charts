@@ -16,7 +16,7 @@ class CalibrationTest {
     @Test fun interpolatesBetweenWholeDips() {
         val r = Calibration.compute(tank, "10.4") as DipResult.Ok
         assertEquals(398.358, r.chartVolume, 0.001)
-        assertEquals(398.358 - 18, r.netVolume, 0.001)
+        assertEquals(398.358, r.netVolume, 0.001)
     }
 
     @Test fun wholeDipUsesChartValueDirectly() {
@@ -39,7 +39,7 @@ class CalibrationTest {
 
     @Test fun reverseLookupRoundTrips() {
         val fwd = Calibration.compute(tank, "10.4") as DipResult.Ok
-        val back = Calibration.dipForVolume(tank, fwd.netVolume.toString()) as DipForVolumeResult.Ok
+        val back = Calibration.dipForVolume(tank, fwd.chartVolume.toString()) as DipForVolumeResult.Ok
         assertEquals(10.4, back.dipCm, 1e-6)
     }
 
@@ -64,8 +64,8 @@ class CalibrationTest {
     }
 
     @Test fun exactCapacityReverseLookupReturnsMaximumDip() {
-        val netMax = volumes.last() - tank.deadwoodLitres
-        val result = Calibration.dipForVolume(tank, netMax.toString()) as DipForVolumeResult.Ok
+        val chartMax = volumes.last()
+        val result = Calibration.dipForVolume(tank, chartMax.toString()) as DipForVolumeResult.Ok
         assertEquals(210.0, result.dipCm, 1e-9)
     }
 

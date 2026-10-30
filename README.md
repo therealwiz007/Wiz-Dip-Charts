@@ -6,7 +6,7 @@ Android tank dip / calibration lookup app by Wiz Labs.
 - Dip → Volume lookup for 10 KL, 15 KL, 20 KL and 70 KL tanks.
 - Reverse Volume → Dip lookup.
 - Decimal dip interpolation between adjacent whole-centimetre chart rows.
-- Tank-specific deadwood adjustment.
+- Tank-specific P1, P2 and deadwood information displayed with the selected tank.
 - Offline calibration data stored in `app/src/main/assets/charts.json`.
 - Last selected tank and last dip remembered locally.
 - Light and dark appearance follows the device setting.
@@ -37,5 +37,13 @@ The app validates chart structure at startup (zero starting value, strictly incr
 
 ## Calculation rules
 - Forward lookup: linear interpolation between whole-cm chart rows.
-- Net volume = max(0, interpolated chart volume − tank deadwood).
-- Reverse lookup: add deadwood to requested net litres, then inverse-interpolate the chart.
+- The interpolated calibration chart value is displayed directly.
+- Reverse lookup: inverse-interpolate the entered chart volume directly.
+- Deadwood is displayed as tank metadata; it is not separately added or subtracted. Confirm that the supplied chart data already reflects the intended calibration basis before operational use.
+
+## Branding and Play Store assets
+- Adaptive launcher icons (including round variants) and legacy density-specific PNG icons are included under `app/src/main/res/`.
+- Android 12+ splash-screen branding is configured in `app/src/main/res/values-v31/`.
+- Google Play listing title, descriptions, icon and feature graphic are in `fastlane/metadata/android/en-US/`.
+- A draft privacy policy is provided in `PRIVACY_POLICY.md`; review the developer contact details and confirm it matches the final shipped app before publishing.
+- A standalone 512 × 512 icon and 1024 × 500 feature graphic are in `store-assets/`.

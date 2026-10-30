@@ -1,3 +1,4 @@
 <resources>
-    <color name="wiz_icon_background">#10233F</color>
+    <color name="wiz_icon_background">#0757A6</color>
+    <color name="wiz_splash_background">#071C3D</color>
 </resources>

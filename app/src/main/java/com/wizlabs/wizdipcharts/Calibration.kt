@@ -1,3 +1,4 @@
+
 package com.wizlabs.wizdipcharts
 
 import android.content.Context
@@ -83,7 +84,7 @@ object Calibration {
         }
         if (target >= v[max]) return DipForVolumeResult.Ok(max.toDouble(), target)
 
-        // largest lo in [0, max-1] with v[lo] <= target (v is strictly increasing)
+        // Largest lo in [0, max-1] with v[lo] <= target (v is strictly increasing).
         var lo = 0
         var hi = max - 1
         while (lo < hi) {
@@ -98,10 +99,12 @@ object Calibration {
         val json = context.assets.open("charts.json").bufferedReader().use { it.readText() }
         val arr = JSONArray(json)
         require(arr.length() > 0) { "No tank calibration charts found." }
+
         val loaded = List(arr.length()) { i ->
             val o = arr.getJSONObject(i)
             val v = o.getJSONArray("volumes")
             val values = DoubleArray(v.length()) { v.getDouble(it) }
+
             val tank = Tank(
                 kl = o.getInt("kl"),
                 diameterCm = o.getInt("diameterCm"),
@@ -111,15 +114,41 @@ object Calibration {
                 deadwoodLitres = o.getInt("deadwoodLitres"),
                 volumes = values,
             )
-            require(tank.kl > 0 && tank.diameterCm > 0 && tank.lengthCm > 0) { "Invalid tank dimensions for ${tank.kl} KL." }
-            require(values.size >= 2 && o.optInt("maxDipCm", values.size - 1) == values.size - 1) { "Invalid dip range for ${tank.kl} KL." }
-            require(kotlin.math.abs(values.first()) < 1e-9) { "Chart for ${tank.kl} KL must start at zero litres." }
-            require(values.all { it.isFinite() && it >= 0.0 }) { "Invalid chart volume in ${tank.kl} KL." }
-            require(values.zipWithNext().all { (a, b) -> b > a }) { "Chart for ${tank.kl} KL must be strictly increasing." }
-            require(tank.deadwoodLitres >= 0 && tank.deadwoodLitres < values.last()) { "Invalid deadwood for ${tank.kl} KL." }
+
+            require(tank.kl > 0 && tank.diameterCm > 0 && tank.lengthCm > 0) {
+                "Invalid tank dimensions for ${tank.kl} KL."
+            }
+
+            require(values.size >= 2 && o.optInt("maxDipCm", values.size - 1) == values.size - 1) {
+                "Invalid dip range for ${tank.kl} KL."
+            }
+
+            require(kotlin.math.abs(values.first()) < 1e-9) {
+                "Chart for ${tank.kl} KL must start at zero litres."
+            }
+
+            require(values.all { it.isFinite() && it >= 0.0 }) {
+                "Invalid chart volume in ${tank.kl} KL."
+            }
+
+            // Check that every chart value is strictly greater than the previous value.
+            require((1 until values.size).all { index ->
+                values[index] > values[index - 1]
+            }) {
+                "Chart for ${tank.kl} KL must be strictly increasing."
+            }
+
+            require(tank.deadwoodLitres >= 0 && tank.deadwoodLitres < values.last()) {
+                "Invalid deadwood for ${tank.kl} KL."
+            }
+
             tank
         }
-        require(loaded.map { it.kl }.distinct().size == loaded.size) { "Duplicate tank sizes in calibration charts." }
+
+        require(loaded.map { it.kl }.distinct().size == loaded.size) {
+            "Duplicate tank sizes in calibration charts."
+        }
+
         return loaded
     }
 }

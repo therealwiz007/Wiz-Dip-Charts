@@ -9,10 +9,12 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -40,6 +42,7 @@ import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -48,14 +51,18 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
@@ -75,23 +82,47 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val tanks = Calibration.load(this)
-        setContent { TankDipApp(tanks) }
+        setContent { CappedFontScale { TankDipApp(tanks) } }
     }
 }
 
-/* ---------- iOS-style palette ---------- */
 
-private class Pal(val bg: Color, val card: Color, val label: Color, val secondary: Color, val separator: Color, val blue: Color)
+/** Caps system font scale so a non-scrolling screen can never overflow. */
+@Composable
+private fun CappedFontScale(content: @Composable () -> Unit) {
+    val d = LocalDensity.current
+    CompositionLocalProvider(LocalDensity provides Density(d.density, minOf(d.fontScale, 1.15f)), content = content)
+}
+
+/* ---------- Palette: calm neutrals, one brand-blue accent ---------- */
+
+private class Pal(
+    val bg: Color,
+    val card: Color,
+    val raised: Color,
+    val label: Color,
+    val secondary: Color,
+    val separator: Color,
+    val track: Color,
+    val accent: Color,
+    val accentSoft: Color,
+    val error: Color,
+)
 
 private val LightPal = Pal(
-    bg = Color(0xFFF2F2F7), card = Color.White, label = Color.Black,
-    secondary = Color(0xFF8E8E93), separator = Color(0xFFE5E5EA), blue = Color(0xFF007AFF),
+    bg = Color(0xFFF5F6F8), card = Color.White, raised = Color.White,
+    label = Color(0xFF0B1220), secondary = Color(0xFF6B7585), separator = Color(0xFFE6E9EE),
+    track = Color(0xFFE9ECF1), accent = Color(0xFF0757A6), accentSoft = Color(0xFFE9F1FA),
+    error = Color(0xFFC93C3C),
 )
 private val DarkPal = Pal(
-    bg = Color.Black, card = Color(0xFF1C1C1E), label = Color.White,
-    secondary = Color(0xFF8E8E93), separator = Color(0xFF38383A), blue = Color(0xFF0A84FF),
+    bg = Color(0xFF0A0F1A), card = Color(0xFF121A28), raised = Color(0xFF253146),
+    label = Color(0xFFEEF2F8), secondary = Color(0xFF8B96A8), separator = Color(0xFF1E293B),
+    track = Color(0xFF18212F), accent = Color(0xFF5BA3F5), accentSoft = Color(0xFF13233A),
+    error = Color(0xFFFF7A7A),
 )
 
+private val CardShape = RoundedCornerShape(20.dp)
 private val numberFmt = DecimalFormat("#,##0.0")
 
 @Composable
@@ -115,9 +146,11 @@ fun TankDipApp(tanks: List<Tank>) {
         drawerContent = {
             ModalDrawerSheet(drawerContainerColor = pal.card) {
                 Spacer(Modifier.height(48.dp))
-                Text("Wiz Dip Charts", color = pal.label, fontSize = 28.sp, fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 24.dp))
-                Spacer(Modifier.height(24.dp))
+                Text("Wiz Dip Charts", color = pal.label, fontSize = 24.sp, fontWeight = FontWeight.SemiBold,
+                    letterSpacing = (-0.3).sp, modifier = Modifier.padding(horizontal = 24.dp))
+                Spacer(Modifier.height(16.dp))
+                Box(Modifier.fillMaxWidth().padding(horizontal = 24.dp).height(1.dp).background(pal.separator))
+                Spacer(Modifier.height(6.dp))
                 DrawerItem(Icons.Default.Share, "Share app", pal) {
                     scope.launch { drawerState.close() }
                     shareApp(context)
@@ -129,13 +162,30 @@ fun TankDipApp(tanks: List<Tank>) {
             }
         },
     ) {
-        Box(Modifier.fillMaxSize().background(pal.bg).safeDrawingPadding()) {
-            Column(Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-                IconButton(onClick = { scope.launch { drawerState.open() } }, modifier = Modifier.size(40.dp)) {
-                    Icon(Icons.Default.Menu, contentDescription = "Menu", tint = pal.blue)
+        // Non-scrollable by design. BoxWithConstraints sits inside safeDrawingPadding, so
+        // maxHeight already excludes the keyboard; the spec strip is dropped only when
+        // there is genuinely not enough room, which keeps input + result always visible.
+        BoxWithConstraints(
+            Modifier
+                .fillMaxSize()
+                .background(pal.bg)
+                .safeDrawingPadding()
+                .padding(horizontal = 18.dp),
+        ) {
+            val showSpecs = maxHeight >= 430.dp
+
+            Column(Modifier.fillMaxSize()) {
+                Row(
+                    Modifier.fillMaxWidth().height(44.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconButton(onClick = { scope.launch { drawerState.open() } }, modifier = Modifier.size(42.dp)) {
+                        Icon(Icons.Default.Menu, contentDescription = "Menu", tint = pal.label)
+                    }
+                    Spacer(Modifier.size(5.dp))
+                    Text("Wiz Dip Charts", color = pal.label, fontSize = 21.sp, fontWeight = FontWeight.SemiBold,
+                        letterSpacing = (-0.3).sp)
                 }
-                Text("Wiz Dip Charts", color = pal.label, fontSize = 30.sp, fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(start = 4.dp, bottom = 10.dp))
 
                 SegmentedControl(
                     options = listOf("Dip → Volume", "Volume → Dip"),
@@ -146,71 +196,57 @@ fun TankDipApp(tanks: List<Tank>) {
                     reverse = index == 1
                 }
 
-                SectionLabel("TANK", pal)
+                Spacer(Modifier.height(12.dp))
+                // Tank picker + specs merged into one card (saves two labels and a card gap).
                 Card(pal) {
                     TankPicker(tanks, tank, pal) { picked ->
                         if (picked.kl != selectedKl) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         selectedKl = picked.kl
                         prefs.edit().putInt(KEY_LAST_TANK, picked.kl).apply()
                     }
-                }
-
-                SectionLabel("SPECIFICATIONS", pal)
-                Card(pal) {
-                    SpecRow("Diameter", "${tank.diameterCm} cm", pal, compact = true)
-                    Divider(pal)
-                    SpecRow("Length", "${tank.lengthCm} cm", pal, compact = true)
-                    Divider(pal)
-                    Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                        MiniSpec("P1", "${tank.p1Cm} cm", pal)
-                        MiniSpec("P2", "${tank.p2Cm} cm", pal)
-                        MiniSpec("Deadwood", "${tank.deadwoodLitres} L", pal)
+                    if (showSpecs) {
+                        Divider(pal)
+                        Row(
+                            Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 9.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            MiniSpec("Diameter", "${tank.diameterCm} cm", pal, Modifier.weight(1f))
+                            MiniSpec("Length", "${tank.lengthCm} cm", pal, Modifier.weight(1f))
+                            MiniSpec("P1", "${tank.p1Cm} cm", pal, Modifier.weight(1f))
+                            MiniSpec("P2", "${tank.p2Cm} cm", pal, Modifier.weight(1f))
+                            MiniSpec("Deadwood", "${tank.deadwoodLitres} L", pal, Modifier.weight(1f))
+                        }
                     }
                 }
 
                 if (!reverse) {
                     SectionLabel("DIP", pal)
-                    Card(pal) {
-                        NumberField(
-                            value = dipText,
-                            unit = "cm",
-                            maxLength = 7,
-                            pal = pal,
-                            onChange = { new ->
-                                dipText = new
-                                prefs.edit().putString(KEY_LAST_DIP, new).apply()
-                            },
-                        )
-                    }
-                    Text(
-                        "Whole or decimal dips. Max ${tank.maxDipCm} cm. Values between two cm rows are interpolated.",
-                        color = pal.secondary, fontSize = 13.sp,
-                        modifier = Modifier.padding(start = 16.dp, top = 6.dp, end = 16.dp),
+                    NumberField(
+                        value = dipText,
+                        unit = "cm",
+                        maxLength = 7,
+                        pal = pal,
+                        onChange = { new ->
+                            dipText = new
+                            prefs.edit().putString(KEY_LAST_DIP, new).apply()
+                        },
                     )
-
-                    SectionLabel("VOLUME", pal)
+                    Caption("Max ${tank.maxDipCm} cm · decimals are interpolated", pal)
+                    Spacer(Modifier.height(10.dp))
                     ResultCard(Calibration.compute(tank, dipText), pal)
                 } else {
                     SectionLabel("VOLUME", pal)
-                    Card(pal) {
-                        NumberField(
-                            value = volumeText,
-                            unit = "L",
-                            maxLength = 9,
-                            pal = pal,
-                            onChange = { volumeText = it },
-                        )
-                    }
-                    Text(
-                        "Enter the chart volume in litres. The dip is interpolated between chart rows.",
-                        color = pal.secondary, fontSize = 13.sp,
-                        modifier = Modifier.padding(start = 16.dp, top = 6.dp, end = 16.dp),
+                    NumberField(
+                        value = volumeText,
+                        unit = "L",
+                        maxLength = 9,
+                        pal = pal,
+                        onChange = { volumeText = it },
                     )
-
-                    SectionLabel("DIP", pal)
+                    Caption("Chart volume in litres · dip is interpolated", pal)
+                    Spacer(Modifier.height(10.dp))
                     DipResultCard(Calibration.dipForVolume(tank, volumeText), pal)
                 }
-                Spacer(Modifier.height(8.dp))
             }
         }
     }
@@ -218,8 +254,15 @@ fun TankDipApp(tanks: List<Tank>) {
 
 @Composable
 private fun NumberField(value: String, unit: String, maxLength: Int, pal: Pal, onChange: (String) -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 9.dp),
-        verticalAlignment = Alignment.CenterVertically) {
+    var focused by remember { mutableStateOf(false) }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .background(pal.card, CardShape)
+            .border(if (focused) 1.5.dp else 1.dp, if (focused) pal.accent else pal.separator, CardShape)
+            .padding(horizontal = 18.dp, vertical = 11.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         BasicTextField(
             value = value,
             onValueChange = { new ->
@@ -227,20 +270,20 @@ private fun NumberField(value: String, unit: String, maxLength: Int, pal: Pal, o
             },
             singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            textStyle = TextStyle(color = pal.label, fontSize = 30.sp, fontWeight = FontWeight.SemiBold),
-            cursorBrush = SolidColor(pal.blue),
-            modifier = Modifier.weight(1f),
+            textStyle = TextStyle(color = pal.label, fontSize = 30.sp, fontWeight = FontWeight.Medium, letterSpacing = (-0.5).sp),
+            cursorBrush = SolidColor(pal.accent),
+            modifier = Modifier.weight(1f).onFocusChanged { focused = it.isFocused },
             decorationBox = { inner ->
                 Box {
                     if (value.isEmpty()) {
-                        Text("0.0", color = pal.secondary.copy(alpha = 0.5f),
-                            fontSize = 30.sp, fontWeight = FontWeight.SemiBold)
+                        Text("0.0", color = pal.secondary.copy(alpha = 0.4f),
+                            fontSize = 30.sp, fontWeight = FontWeight.Medium, letterSpacing = (-0.5).sp)
                     }
                     inner()
                 }
             },
         )
-        Text(unit, color = pal.secondary, fontSize = 20.sp)
+        Text(unit, color = pal.secondary, fontSize = 18.sp, fontWeight = FontWeight.Medium)
     }
 }
 
@@ -249,24 +292,24 @@ private fun SegmentedControl(options: List<String>, selectedIndex: Int, pal: Pal
     Row(
         Modifier
             .fillMaxWidth()
-            .background(pal.separator, RoundedCornerShape(10.dp))
-            .padding(2.dp),
+            .background(pal.track, RoundedCornerShape(14.dp))
+            .padding(4.dp),
     ) {
         options.forEachIndexed { index, label ->
             val selected = index == selectedIndex
             Box(
                 Modifier
                     .weight(1f)
-                    .background(if (selected) pal.card else Color.Transparent, RoundedCornerShape(8.dp))
+                    .background(if (selected) pal.raised else Color.Transparent, RoundedCornerShape(11.dp))
                     .clickable { onSelect(index) }
                     .padding(vertical = 8.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     label,
-                    color = pal.label,
+                    color = if (selected) pal.label else pal.secondary,
                     fontSize = 14.sp,
-                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
                 )
             }
         }
@@ -279,12 +322,12 @@ private fun DrawerItem(icon: androidx.compose.ui.graphics.vector.ImageVector, la
         Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 24.dp, vertical = 16.dp),
+            .padding(horizontal = 28.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(icon, contentDescription = null, tint = pal.blue)
-        Spacer(Modifier.size(16.dp))
-        Text(label, color = pal.label, fontSize = 17.sp)
+        Icon(icon, contentDescription = null, tint = pal.accent)
+        Spacer(Modifier.size(18.dp))
+        Text(label, color = pal.label, fontSize = 15.sp, fontWeight = FontWeight.Medium)
     }
 }
 
@@ -292,45 +335,60 @@ private val dipFmt = DecimalFormat("0.0")
 
 @Composable
 private fun DipResultCard(result: DipForVolumeResult, pal: Pal) {
-    Card(pal) {
-        when (result) {
-            is DipForVolumeResult.Ok -> {
-                Column(Modifier.fillMaxWidth().padding(vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(dipFmt.format(result.dipCm), color = pal.label, fontSize = 40.sp, fontWeight = FontWeight.Bold)
-                    Text("cm", color = pal.secondary, fontSize = 17.sp)
-                }
-                Text("CALCULATED FROM CALIBRATION CHART", color = pal.secondary, fontSize = 11.sp, modifier = Modifier.padding(bottom = 8.dp))
-            }
-            DipForVolumeResult.Empty -> Hint("Enter a volume to see the dip", pal)
-            DipForVolumeResult.Invalid -> Hint("Enter a valid number", pal, error = true)
-            is DipForVolumeResult.OutOfRange ->
-                Hint("Above tank capacity (max ${numberFmt.format(result.maxVolumeLitres)} L)", pal, error = true)
-        }
+    when (result) {
+        is DipForVolumeResult.Ok ->
+            HeroResult(dipFmt.format(result.dipCm), "cm", "CALCULATED FROM CALIBRATION CHART", pal)
+        DipForVolumeResult.Empty -> Hint("Enter a volume to see the dip", pal)
+        DipForVolumeResult.Invalid -> Hint("Enter a valid number", pal, error = true)
+        is DipForVolumeResult.OutOfRange ->
+            Hint("Above tank capacity (max ${numberFmt.format(result.maxVolumeLitres)} L)", pal, error = true)
     }
 }
 
 @Composable
 private fun ResultCard(result: DipResult, pal: Pal) {
-    Card(pal) {
-        when (result) {
-            is DipResult.Ok -> {
-                Column(Modifier.fillMaxWidth().padding(vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(numberFmt.format(result.netVolume), color = pal.label, fontSize = 40.sp, fontWeight = FontWeight.Bold)
-                    Text("litres", color = pal.secondary, fontSize = 17.sp)
-                }
-                Text("CALIBRATION CHART VOLUME", color = pal.secondary, fontSize = 11.sp, modifier = Modifier.padding(bottom = 8.dp))
-            }
-            DipResult.Empty -> Hint("Enter a dip to see the volume", pal)
-            DipResult.Invalid -> Hint("Enter a valid number", pal, error = true)
-            is DipResult.OutOfRange -> Hint("Dip is above the tank maximum (${result.maxDipCm} cm)", pal, error = true)
+    when (result) {
+        is DipResult.Ok ->
+            HeroResult(numberFmt.format(result.netVolume), "litres", "CALIBRATION CHART VOLUME", pal)
+        DipResult.Empty -> Hint("Enter a dip to see the volume", pal)
+        DipResult.Invalid -> Hint("Enter a valid number", pal, error = true)
+        is DipResult.OutOfRange -> Hint("Dip is above the tank maximum (${result.maxDipCm} cm)", pal, error = true)
+    }
+}
+
+/** The answer: large, centred, on a softly tinted panel so it is the first thing the eye lands on. */
+@Composable
+private fun HeroResult(value: String, unit: String, caption: String, pal: Pal) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(pal.accentSoft, CardShape)
+            .padding(horizontal = 16.dp, vertical = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text(value, color = pal.accent, fontSize = 40.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-1.5).sp)
+            Spacer(Modifier.size(8.dp))
+            Text(unit, color = pal.secondary, fontSize = 18.sp, fontWeight = FontWeight.Medium,
+                modifier = Modifier.padding(bottom = 10.dp))
         }
+        Spacer(Modifier.height(4.dp))
+        Text(caption, color = pal.secondary, fontSize = 11.sp, fontWeight = FontWeight.Medium,
+            letterSpacing = 1.sp, textAlign = TextAlign.Center)
     }
 }
 
 @Composable
 private fun Hint(text: String, pal: Pal, error: Boolean = false) {
-    Box(Modifier.fillMaxWidth().padding(vertical = 16.dp, horizontal = 16.dp), contentAlignment = Alignment.Center) {
-        Text(text, color = if (error) Color(0xFFFF3B30) else pal.secondary, fontSize = 17.sp)
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .background(pal.card, CardShape)
+            .border(1.dp, pal.separator, CardShape)
+            .padding(horizontal = 16.dp, vertical = 16.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(text, color = if (error) pal.error else pal.secondary, fontSize = 15.sp, textAlign = TextAlign.Center)
     }
 }
 
@@ -339,17 +397,20 @@ private fun TankPicker(tanks: List<Tank>, selected: Tank, pal: Pal, onPick: (Tan
     var open by remember { mutableStateOf(false) }
     Box {
         Row(
-            Modifier.fillMaxWidth().clickable { open = true }.padding(horizontal = 16.dp, vertical = 14.dp),
+            Modifier.fillMaxWidth().clickable { open = true }.padding(start = 18.dp, end = 12.dp, top = 11.dp, bottom = 11.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("Tank size", color = pal.label, fontSize = 17.sp, modifier = Modifier.weight(1f))
-            Text(selected.label, color = pal.blue, fontSize = 17.sp)
-            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = pal.blue)
+            Text("Tank size", color = pal.secondary, fontSize = 14.sp, modifier = Modifier.weight(1f))
+            Text(selected.label, color = pal.label, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = pal.accent)
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }, containerColor = pal.card) {
             tanks.forEach { t ->
                 DropdownMenuItem(
-                    text = { Text(t.label, color = if (t.kl == selected.kl) pal.blue else pal.label, fontSize = 17.sp) },
+                    text = {
+                        Text(t.label, color = if (t.kl == selected.kl) pal.accent else pal.label, fontSize = 16.sp,
+                            fontWeight = if (t.kl == selected.kl) FontWeight.SemiBold else FontWeight.Normal)
+                    },
                     onClick = { open = false; onPick(t) },
                 )
             }
@@ -359,34 +420,38 @@ private fun TankPicker(tanks: List<Tank>, selected: Tank, pal: Pal, onPick: (Tan
 
 @Composable
 private fun SectionLabel(text: String, pal: Pal) {
-    Text(text, color = pal.secondary, fontSize = 13.sp,
-        modifier = Modifier.padding(start = 16.dp, top = 10.dp, bottom = 4.dp))
+    Text(text, color = pal.secondary, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.2.sp,
+        modifier = Modifier.padding(start = 4.dp, top = 10.dp, bottom = 4.dp))
+}
+
+@Composable
+private fun Caption(text: String, pal: Pal) {
+    Text(text, color = pal.secondary, fontSize = 12.sp, lineHeight = 17.sp,
+        modifier = Modifier.padding(start = 4.dp, top = 4.dp, end = 4.dp))
 }
 
 @Composable
 private fun Card(pal: Pal, content: @Composable () -> Unit) {
-    Column(Modifier.fillMaxWidth().background(pal.card, RoundedCornerShape(12.dp))) { content() }
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(pal.card, CardShape)
+            .border(1.dp, pal.separator, CardShape),
+    ) { content() }
 }
 
 @Composable
-private fun SpecRow(label: String, value: String, pal: Pal, compact: Boolean = false) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = if (compact) 7.dp else 13.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, color = pal.label, fontSize = 17.sp)
-        Text(value, color = pal.secondary, fontSize = 17.sp)
-    }
-}
-
-@Composable
-private fun MiniSpec(label: String, value: String, pal: Pal) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label, color = pal.secondary, fontSize = 12.sp)
-        Text(value, color = pal.label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+private fun MiniSpec(label: String, value: String, pal: Pal, modifier: Modifier = Modifier) {
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(label, color = pal.secondary, fontSize = 11.sp, maxLines = 1)
+        Spacer(Modifier.height(2.dp))
+        Text(value, color = pal.label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
     }
 }
 
 @Composable
 private fun Divider(pal: Pal) {
-    Box(Modifier.fillMaxWidth().padding(start = 16.dp).height(0.5.dp).background(pal.separator))
+    Box(Modifier.fillMaxWidth().padding(horizontal = 20.dp).height(1.dp).background(pal.separator))
 }
 
 private fun rateApp(context: Context) {

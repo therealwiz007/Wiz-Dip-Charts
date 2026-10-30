@@ -3,8 +3,7 @@ name: Wiz Dip Charts - Android Release
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   workflow_dispatch:
 
 permissions:
@@ -16,40 +15,33 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout source code
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 2. Configure Java
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      # 3. Configure Gradle
+      # Android SDK setup - updated to v4
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools'
+
+      - name: Install Android SDK 36
+        run: |
+          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
 
-      # 4. Install Android SDK packages
-      - name: Install Android SDK
-        run: |
-          yes | sdkmanager --licenses
-          sdkmanager "platforms;android-36" "build-tools;36.0.0"
-
-      # 5. Verify SDK installation
-      - name: Verify Android SDK
-        run: |
-          sdkmanager --list_installed
-          echo "SDK installation successful"
-
-      # 6. Run unit tests
       - name: Run Unit Tests
         run: gradle test
 
-      # 7. Restore signing keystore
       - name: Restore Upload Keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
@@ -57,7 +49,6 @@ jobs:
           echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/wiz-dip-charts.jks"
           test -s "$RUNNER_TEMP/wiz-dip-charts.jks"
 
-      # 8. Validate keystore
       - name: Verify Signing Key
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -68,7 +59,6 @@ jobs:
             -storepass "$KEYSTORE_PASSWORD" \
             -alias "$KEY_ALIAS"
 
-      # 9. Build signed Play Store AAB
       - name: Build Signed AAB
         env:
           KEYSTORE_FILE: ${{ runner.temp }}/wiz-dip-charts.jks
@@ -77,16 +67,13 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: gradle bundleRelease
 
-      # 10. Upload AAB
       - name: Upload Play Store AAB
         uses: actions/upload-artifact@v4
         with:
           name: Wiz-Dip-Charts-Play-Store-AAB
           path: app/build/outputs/bundle/release/*.aab
           if-no-files-found: error
-          retention-days: 14
 
-      # 11. Build debug APK for testing
       - name: Build Debug APK
         run: gradle assembleDebug
 
@@ -96,4 +83,3 @@ jobs:
           name: Wiz-Dip-Charts-Debug-APK
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
-          retention-days: 14

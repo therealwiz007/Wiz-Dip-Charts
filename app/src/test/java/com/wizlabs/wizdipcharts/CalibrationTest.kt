@@ -11,7 +11,7 @@ class CalibrationTest {
         if (i <= 10) 37.551090903757921 * i
         else 375.51090903757921 + (i - 10) * (432.62814996693123 - 375.51090903757921)
     }
-    private val tank = Tank(20, 210, 625, 0, 0, 18, volumes)
+    private val tank = Tank("test-20", "20 KL test chart", 20, 210.0, 625.0, 0, 0, 18, volumes)
 
     @Test fun interpolatesBetweenWholeDips() {
         val r = Calibration.compute(tank, "10.4") as DipResult.Ok

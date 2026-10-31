@@ -5,16 +5,19 @@ import org.json.JSONArray
 
 /** One tank's calibration chart. volumes[d] = chart volume (litres) at dip d cm; volumes[0] = 0. */
 class Tank(
+    val id: String,
+    val name: String,
     val kl: Int,
-    val diameterCm: Int,
-    val lengthCm: Int,
+    val diameterCm: Double,
+    val lengthCm: Double,
     val p1Cm: Int,
     val p2Cm: Int,
     val deadwoodLitres: Int,
     val volumes: DoubleArray,
 ) {
     val maxDipCm: Int get() = volumes.size - 1
-    val label: String get() = "$kl KL"
+    val label: String get() = name
+    val dimensionsLabel: String get() = "${fmtCm(diameterCm)} × ${fmtCm(lengthCm)} cm"
 }
 
 sealed interface DipResult {
@@ -35,6 +38,8 @@ sealed interface DipForVolumeResult {
     data object Invalid : DipForVolumeResult
     data class OutOfRange(val maxVolumeLitres: Double) : DipForVolumeResult
 }
+
+private fun fmtCm(value: Double): String = if (value % 1.0 == 0.0) value.toInt().toString() else value.toString().trimEnd('0').trimEnd('.')
 
 object Calibration {
 
@@ -101,9 +106,11 @@ object Calibration {
             val v = o.getJSONArray("volumes")
             val values = DoubleArray(v.length()) { v.getDouble(it) }
             val tank = Tank(
+                id = o.getString("id"),
+                name = o.getString("name"),
                 kl = o.getInt("kl"),
-                diameterCm = o.getInt("diameterCm"),
-                lengthCm = o.getInt("lengthCm"),
+                diameterCm = o.getDouble("diameterCm"),
+                lengthCm = o.getDouble("lengthCm"),
                 p1Cm = o.getInt("p1Cm"),
                 p2Cm = o.getInt("p2Cm"),
                 deadwoodLitres = o.getInt("deadwoodLitres"),
@@ -117,7 +124,7 @@ object Calibration {
             require(tank.deadwoodLitres >= 0 && tank.deadwoodLitres < values.last()) { "Invalid deadwood for ${tank.kl} KL." }
             tank
         }
-        require(loaded.map { it.kl }.distinct().size == loaded.size) { "Duplicate tank sizes in calibration charts." }
+        require(loaded.map { it.id }.distinct().size == loaded.size) { "Duplicate chart identifiers." }
         return loaded
     }
 }

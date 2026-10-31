@@ -32,6 +32,9 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -69,7 +72,9 @@ import kotlinx.coroutines.launch
 import java.text.DecimalFormat
 
 private const val PREFS = "tankdip_prefs"
-private const val KEY_LAST_TANK = "last_tank_kl"
+private const val KEY_LAST_TANK = "last_chart_id"
+private const val KEY_MY_CHARTS = "my_chart_ids"
+private const val KEY_MY_CHARTS_CONFIGURED = "my_charts_configured"
 private const val KEY_LAST_DIP = "last_dip_cm"
 
 private const val APP_ID = "com.wizlabs.wizdipcharts"
@@ -131,8 +136,16 @@ fun TankDipApp(tanks: List<Tank>) {
     val pal = if (isSystemInDarkTheme()) DarkPal else LightPal
 
     val prefs = remember { context.getSharedPreferences(PREFS, Context.MODE_PRIVATE) }
-    var selectedKl by rememberSaveable { mutableStateOf(prefs.getInt(KEY_LAST_TANK, tanks.first().kl)) }
-    val tank = tanks.firstOrNull { it.kl == selectedKl } ?: tanks.first()
+    val savedIds = remember { prefs.getStringSet(KEY_MY_CHARTS, emptySet())?.toSet() ?: emptySet() }
+    val selectedIds = remember { androidx.compose.runtime.mutableStateListOf<String>().apply { addAll(savedIds) } }
+    var chartsConfigured by remember { mutableStateOf(prefs.getBoolean(KEY_MY_CHARTS_CONFIGURED, false)) }
+    val visibleTanks = remember(tanks, selectedIds.toList(), chartsConfigured) {
+        val filtered = if (chartsConfigured && selectedIds.isNotEmpty()) tanks.filter { it.id in selectedIds } else tanks
+        filtered.ifEmpty { tanks }
+    }
+    var selectedChartId by rememberSaveable { mutableStateOf(prefs.getString(KEY_LAST_TANK, visibleTanks.first().id) ?: visibleTanks.first().id) }
+    val tank = visibleTanks.firstOrNull { it.id == selectedChartId } ?: visibleTanks.first()
+    var showManageCharts by remember { mutableStateOf(!chartsConfigured) }
     var dipText by rememberSaveable { mutableStateOf(prefs.getString(KEY_LAST_DIP, "") ?: "") }
     var volumeText by rememberSaveable { mutableStateOf("") }
     var reverse by rememberSaveable { mutableStateOf(false) }
@@ -151,6 +164,10 @@ fun TankDipApp(tanks: List<Tank>) {
                 Spacer(Modifier.height(16.dp))
                 Box(Modifier.fillMaxWidth().padding(horizontal = 24.dp).height(1.dp).background(pal.separator))
                 Spacer(Modifier.height(6.dp))
+                DrawerItem(Icons.Default.Star, "My Charts", pal) {
+                    scope.launch { drawerState.close() }
+                    showManageCharts = true
+                }
                 DrawerItem(Icons.Default.Share, "Share app", pal) {
                     scope.launch { drawerState.close() }
                     shareApp(context)
@@ -199,19 +216,19 @@ fun TankDipApp(tanks: List<Tank>) {
                 Spacer(Modifier.height(12.dp))
                 // Tank picker + specs merged into one card (saves two labels and a card gap).
                 Card(pal) {
-                    TankPicker(tanks, tank, pal) { picked ->
-                        if (picked.kl != selectedKl) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        selectedKl = picked.kl
-                        prefs.edit().putInt(KEY_LAST_TANK, picked.kl).apply()
-                    }
+                    TankPicker(visibleTanks, tank, tanks.size, pal, onPick = { picked ->
+                        if (picked.id != selectedChartId) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        selectedChartId = picked.id
+                        prefs.edit().putString(KEY_LAST_TANK, picked.id).apply()
+                    }, onManage = { showManageCharts = true })
                     if (showSpecs) {
                         Divider(pal)
                         Row(
                             Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 9.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            MiniSpec("Diameter", "${tank.diameterCm} cm", pal, Modifier.weight(1f))
-                            MiniSpec("Length", "${tank.lengthCm} cm", pal, Modifier.weight(1f))
+                            MiniSpec("Diameter", "${fmtDim(tank.diameterCm)} cm", pal, Modifier.weight(1f))
+                            MiniSpec("Length", "${fmtDim(tank.lengthCm)} cm", pal, Modifier.weight(1f))
                             MiniSpec("P1", "${tank.p1Cm} cm", pal, Modifier.weight(1f))
                             MiniSpec("P2", "${tank.p2Cm} cm", pal, Modifier.weight(1f))
                             MiniSpec("Deadwood", "${tank.deadwoodLitres} L", pal, Modifier.weight(1f))
@@ -249,8 +266,69 @@ fun TankDipApp(tanks: List<Tank>) {
                 }
             }
         }
+        if (showManageCharts) {
+            ManageChartsDialog(tanks, selectedIds, pal, onDismiss = { showManageCharts = false }) {
+                chartsConfigured = true
+                prefs.edit().putStringSet(KEY_MY_CHARTS, selectedIds.toSet()).putBoolean(KEY_MY_CHARTS_CONFIGURED, true).apply()
+                val next = tanks.firstOrNull { it.id == selectedChartId && (selectedIds.isEmpty() || it.id in selectedIds) }
+                    ?: tanks.firstOrNull { selectedIds.isEmpty() || it.id in selectedIds } ?: tanks.first()
+                selectedChartId = next.id
+                prefs.edit().putString(KEY_LAST_TANK, next.id).apply()
+                showManageCharts = false
+            }
+        }
     }
 }
+
+@Composable
+private fun ManageChartsDialog(
+    tanks: List<Tank>,
+    selectedIds: androidx.compose.runtime.snapshots.SnapshotStateList<String>,
+    pal: Pal,
+    onDismiss: () -> Unit,
+    onSave: () -> Unit,
+) {
+    val checked = remember { androidx.compose.runtime.mutableStateListOf<String>().apply { addAll(selectedIds) } }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = pal.card,
+        title = { Text("My Charts", color = pal.label, fontWeight = FontWeight.SemiBold) },
+        text = {
+            Column(Modifier.height(420.dp)) {
+                Text("Select the calibration charts used at your outlet. Only selected charts will appear in the tank selector.", color = pal.secondary, fontSize = 13.sp)
+                Spacer(Modifier.height(10.dp))
+                androidx.compose.foundation.lazy.LazyColumn {
+                    items(tanks.size) { index ->
+                        val chart = tanks[index]
+                        val isChecked = chart.id in checked
+                        Row(
+                            Modifier.fillMaxWidth().clickable {
+                                if (isChecked) checked.remove(chart.id) else checked.add(chart.id)
+                            }.padding(vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Checkbox(checked = isChecked, onCheckedChange = { value ->
+                                if (value) { if (chart.id !in checked) checked.add(chart.id) } else checked.remove(chart.id)
+                            })
+                            Column(Modifier.weight(1f)) {
+                                Text(chart.name, color = pal.label, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                                Text("${chart.dimensionsLabel}  ·  P1 ${chart.p1Cm}  ·  P2 ${chart.p2Cm}", color = pal.secondary, fontSize = 11.sp)
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { selectedIds.clear(); selectedIds.addAll(checked); onSave() }) {
+                Text("Save selection", color = pal.accent)
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", color = pal.secondary) } },
+    )
+}
+
+private fun fmtDim(value: Double): String = if (value % 1.0 == 0.0) value.toInt().toString() else value.toString().trimEnd('0').trimEnd('.')
 
 @Composable
 private fun NumberField(value: String, unit: String, maxLength: Int, pal: Pal, onChange: (String) -> Unit) {
@@ -393,27 +471,41 @@ private fun Hint(text: String, pal: Pal, error: Boolean = false) {
 }
 
 @Composable
-private fun TankPicker(tanks: List<Tank>, selected: Tank, pal: Pal, onPick: (Tank) -> Unit) {
+private fun TankPicker(
+    tanks: List<Tank>, selected: Tank, totalCharts: Int, pal: Pal,
+    onPick: (Tank) -> Unit, onManage: () -> Unit,
+) {
     var open by remember { mutableStateOf(false) }
     Box {
         Row(
             Modifier.fillMaxWidth().clickable { open = true }.padding(start = 18.dp, end = 12.dp, top = 11.dp, bottom = 11.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("Tank size", color = pal.secondary, fontSize = 14.sp, modifier = Modifier.weight(1f))
-            Text(selected.label, color = pal.label, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = pal.accent)
+            Column(Modifier.weight(1f)) {
+                Text("Calibration chart", color = pal.secondary, fontSize = 12.sp)
+                Text(selected.label, color = pal.label, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                Text(selected.dimensionsLabel, color = pal.secondary, fontSize = 11.sp)
+            }
+            Text("${tanks.size} available", color = pal.secondary, fontSize = 11.sp)
+            Icon(Icons.Default.ArrowDropDown, contentDescription = "Choose chart", tint = pal.accent)
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }, containerColor = pal.card) {
             tanks.forEach { t ->
                 DropdownMenuItem(
                     text = {
-                        Text(t.label, color = if (t.kl == selected.kl) pal.accent else pal.label, fontSize = 16.sp,
-                            fontWeight = if (t.kl == selected.kl) FontWeight.SemiBold else FontWeight.Normal)
+                        Column {
+                            Text(t.label, color = if (t.id == selected.id) pal.accent else pal.label, fontSize = 14.sp,
+                                fontWeight = if (t.id == selected.id) FontWeight.SemiBold else FontWeight.Normal)
+                            Text(t.dimensionsLabel, color = pal.secondary, fontSize = 11.sp)
+                        }
                     },
                     onClick = { open = false; onPick(t) },
                 )
             }
+            DropdownMenuItem(
+                text = { Text("Manage My Charts  ·  $totalCharts available", color = pal.accent, fontWeight = FontWeight.SemiBold) },
+                onClick = { open = false; onManage() },
+            )
         }
     }
 }

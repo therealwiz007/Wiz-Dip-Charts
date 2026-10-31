@@ -220,7 +220,7 @@ fun TankDipApp(tanks: List<Tank>) {
                 Spacer(Modifier.height(12.dp))
                 // Tank picker + specs merged into one card (saves two labels and a card gap).
                 Card(pal) {
-                    TankPicker(visibleTanks, tank, tanks.size, pal, onPick = { picked ->
+                    TankPicker(visibleTanks, tank, tanks.size, productNames, pal, onPick = { picked ->
                         if (picked.id != selectedChartId) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         selectedChartId = picked.id
                         prefs.edit().putString(KEY_LAST_TANK, picked.id).apply()
@@ -510,9 +510,14 @@ private fun Hint(text: String, pal: Pal, error: Boolean = false) {
 
 @Composable
 private fun TankPicker(
-    tanks: List<Tank>, selected: Tank, totalCharts: Int, pal: Pal,
-    onPick: (Tank) -> Unit, onManage: () -> Unit,
+    tanks: List<Tank>, selected: Tank, totalCharts: Int,
+    productNames: androidx.compose.runtime.snapshots.SnapshotStateMap<String, String>,
+    pal: Pal, onPick: (Tank) -> Unit, onManage: () -> Unit,
 ) {
+    fun displayName(tank: Tank): String {
+        val savedName = productNames[tank.id]?.trim().orEmpty()
+        return if (savedName.isNotEmpty()) "$savedName - ${tank.kl} KL" else tank.label
+    }
     var open by remember { mutableStateOf(false) }
     Box {
         Row(
@@ -521,7 +526,7 @@ private fun TankPicker(
         ) {
             Column(Modifier.weight(1f)) {
                 Text("Calibration chart", color = pal.secondary, fontSize = 12.sp)
-                Text(selected.label, color = pal.label, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                Text(displayName(selected), color = pal.label, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                 Text(selected.dimensionsLabel, color = pal.secondary, fontSize = 11.sp)
             }
             Text("${tanks.size} available", color = pal.secondary, fontSize = 11.sp)
@@ -532,7 +537,7 @@ private fun TankPicker(
                 DropdownMenuItem(
                     text = {
                         Column {
-                            Text(t.label, color = if (t.id == selected.id) pal.accent else pal.label, fontSize = 14.sp,
+                            Text(displayName(t), color = if (t.id == selected.id) pal.accent else pal.label, fontSize = 14.sp,
                                 fontWeight = if (t.id == selected.id) FontWeight.SemiBold else FontWeight.Normal)
                             Text(t.dimensionsLabel, color = pal.secondary, fontSize = 11.sp)
                         }

@@ -76,6 +76,7 @@ private const val KEY_LAST_TANK = "last_chart_id"
 private const val KEY_MY_CHARTS = "my_chart_ids"
 private const val KEY_MY_CHARTS_CONFIGURED = "my_charts_configured"
 private const val KEY_LAST_DIP = "last_dip_cm"
+private const val KEY_PRODUCT_PREFIX = "product_name_"
 
 private const val APP_ID = "com.wizlabs.wizdipcharts"
 
@@ -138,6 +139,9 @@ fun TankDipApp(tanks: List<Tank>) {
     val prefs = remember { context.getSharedPreferences(PREFS, Context.MODE_PRIVATE) }
     val savedIds = remember { prefs.getStringSet(KEY_MY_CHARTS, emptySet())?.toSet() ?: emptySet() }
     val selectedIds = remember { androidx.compose.runtime.mutableStateListOf<String>().apply { addAll(savedIds) } }
+    val productNames = remember { androidx.compose.runtime.mutableStateMapOf<String, String>().apply { tanks.forEach { t -> put(t.id, prefs.getString(KEY_PRODUCT_PREFIX + t.id, "") ?: "") } } }
+    var renameChartId by remember { mutableStateOf<String?>(null) }
+    var renameValue by remember { mutableStateOf("") }
     var chartsConfigured by remember { mutableStateOf(prefs.getBoolean(KEY_MY_CHARTS_CONFIGURED, false)) }
     val visibleTanks = remember(tanks, selectedIds.toList(), chartsConfigured) {
         val filtered = if (chartsConfigured && selectedIds.isNotEmpty()) tanks.filter { it.id in selectedIds } else tanks
@@ -220,6 +224,7 @@ fun TankDipApp(tanks: List<Tank>) {
                         if (picked.id != selectedChartId) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         selectedChartId = picked.id
                         prefs.edit().putString(KEY_LAST_TANK, picked.id).apply()
+                        if (productNames[picked.id].isNullOrBlank()) { renameChartId = picked.id; renameValue = "" }
                     }, onManage = { showManageCharts = true })
                     if (showSpecs) {
                         Divider(pal)
@@ -267,15 +272,44 @@ fun TankDipApp(tanks: List<Tank>) {
             }
         }
         if (showManageCharts) {
-            ManageChartsDialog(tanks, selectedIds, pal, onDismiss = { showManageCharts = false }) {
+            ManageChartsDialog(tanks, selectedIds, productNames, pal, onDismiss = { showManageCharts = false }) {
                 chartsConfigured = true
-                prefs.edit().putStringSet(KEY_MY_CHARTS, selectedIds.toSet()).putBoolean(KEY_MY_CHARTS_CONFIGURED, true).apply()
+                val edit = prefs.edit().putStringSet(KEY_MY_CHARTS, selectedIds.toSet()).putBoolean(KEY_MY_CHARTS_CONFIGURED, true)
+                productNames.forEach { (id, name) -> edit.putString(KEY_PRODUCT_PREFIX + id, name.trim()) }
+                edit.apply()
+                val firstUnnamed = selectedIds.firstOrNull { productNames[it].isNullOrBlank() }
+                if (firstUnnamed != null) { renameChartId = firstUnnamed; renameValue = "" }
                 val next = tanks.firstOrNull { it.id == selectedChartId && (selectedIds.isEmpty() || it.id in selectedIds) }
                     ?: tanks.firstOrNull { selectedIds.isEmpty() || it.id in selectedIds } ?: tanks.first()
                 selectedChartId = next.id
                 prefs.edit().putString(KEY_LAST_TANK, next.id).apply()
                 showManageCharts = false
             }
+        }
+        renameChartId?.let { id ->
+            val chart = tanks.firstOrNull { it.id == id }
+            AlertDialog(
+                onDismissRequest = { renameChartId = null },
+                containerColor = pal.card,
+                title = { Text(if (productNames[id].isNullOrBlank()) "Name the product" else "Edit product name", color = pal.label) },
+                text = {
+                    Column {
+                        Text(chart?.name ?: "Selected tank", color = pal.secondary, fontSize = 12.sp)
+                        Spacer(Modifier.height(8.dp))
+                        BasicTextField(
+                            value = renameValue,
+                            onValueChange = { renameValue = it.take(32) },
+                            singleLine = true,
+                            textStyle = TextStyle(color = pal.label, fontSize = 17.sp),
+                            cursorBrush = SolidColor(pal.accent),
+                            modifier = Modifier.fillMaxWidth().background(pal.bg, RoundedCornerShape(10.dp)).padding(12.dp),
+                            decorationBox = { inner -> Box { if (renameValue.isEmpty()) Text("e.g. Petrol, Diesel", color = pal.secondary); inner() } }
+                        )
+                    }
+                },
+                confirmButton = { TextButton(onClick = { productNames[id] = renameValue.trim(); prefs.edit().putString(KEY_PRODUCT_PREFIX + id, renameValue.trim()).apply(); renameChartId = null }) { Text("Save", color = pal.accent) } },
+                dismissButton = { TextButton(onClick = { renameChartId = null }) { Text("Later", color = pal.secondary) } }
+            )
         }
     }
 }
@@ -284,6 +318,7 @@ fun TankDipApp(tanks: List<Tank>) {
 private fun ManageChartsDialog(
     tanks: List<Tank>,
     selectedIds: androidx.compose.runtime.snapshots.SnapshotStateList<String>,
+    productNames: androidx.compose.runtime.snapshots.SnapshotStateMap<String, String>,
     pal: Pal,
     onDismiss: () -> Unit,
     onSave: () -> Unit,
@@ -313,6 +348,9 @@ private fun ManageChartsDialog(
                             Column(Modifier.weight(1f)) {
                                 Text(chart.name, color = pal.label, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                                 Text("${chart.dimensionsLabel}  ·  P1 ${chart.p1Cm}  ·  P2 ${chart.p2Cm}", color = pal.secondary, fontSize = 11.sp)
+                                if (isChecked) {
+                                    BasicTextField(value = productNames[chart.id] ?: "", onValueChange = { productNames[chart.id] = it.take(32) }, singleLine = true, textStyle = TextStyle(color = pal.accent, fontSize = 12.sp), cursorBrush = SolidColor(pal.accent), modifier = Modifier.fillMaxWidth().padding(top = 4.dp), decorationBox = { inner -> Box { if ((productNames[chart.id] ?: "").isEmpty()) Text("Product name (Petrol / Diesel / custom)", color = pal.secondary, fontSize = 11.sp); inner() } })
+                                }
                             }
                         }
                     }

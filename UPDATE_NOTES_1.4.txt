@@ -1,0 +1,10 @@
+Wiz Dip Charts 1.4 (versionCode 2)
+
+Changes in this source update:
+- App versionName set to 1.4; versionCode remains 2.
+- Added per-chart product-name storage using local SharedPreferences.
+- When selecting a chart with no saved product name, the app prompts for a product name.
+- My Charts allows product names to be edited inline for each selected chart; names are saved locally.
+
+Important data note:
+- The photographed 15 KL M.S. chart (191 x 556 cm, P1/P2 0, deadwood 16 L, max dip 190 cm) still requires a verified transcription of all 190 litre values before it can safely be added to charts.json. Do not use estimated or interpolated readings as a substitute for the printed calibration table.

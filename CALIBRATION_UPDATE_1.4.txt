@@ -1,0 +1,15 @@
+Wiz Dip Charts 1.4 (versionCode 2) calibration update
+
+Added/updated profile:
+- 15 KL · M.S. 191×556
+- Internal diameter: 191 cm
+- Internal length: 556 cm
+- P1/P2: 0/0 cm
+- Deadwood: 16 L
+- Maximum dip: 190 cm
+- Volume array: 191 entries (index 0 baseline + dip 1 through 190)
+
+The 190 dip readings are copied directly from the supplied workbook:
+calibration_sources/15KL_MS_Tank_Dip_Chart.xlsx, worksheet "Dip List".
+No values are interpolated or estimated.
+Dip 191 onward is excluded.

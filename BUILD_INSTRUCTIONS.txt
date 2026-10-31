@@ -1,0 +1,18 @@
+Wiz Dip Charts 1.0.1 - Build instructions
+
+This is the complete Android Studio / GitHub Actions source project.
+
+GitHub Actions:
+1. Upload/commit the contents of this project to the main branch of your Wiz-Dip-Charts repository.
+2. In GitHub > Settings > Secrets and variables > Actions, configure the signing secrets:
+   KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD
+3. Open Actions and run "Wiz Dip Charts - Android Release" (or push to main).
+4. Download the workflow artifacts:
+   - Wiz-Dip-Charts-Debug-APK (installable test APK)
+   - Wiz-Dip-Charts-Play-Store-AAB (signed Play Store bundle)
+
+App version: 1.0.1 (versionCode 2)
+Package: com.wizlabs.wizdipcharts
+Target SDK: 36
+
+Note: This archive is source code, not a precompiled APK/AAB. It has not been compiled in this environment because Android SDK and Gradle are unavailable here. Do not upload the old AAB from a previous build as this version.

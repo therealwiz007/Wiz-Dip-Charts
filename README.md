@@ -3,19 +3,22 @@
 Android tank dip / calibration lookup app by Wiz Labs.
 
 ## Included
-- Dip → Volume lookup for 10 KL, 15 KL, 20 KL and 70 KL tanks.
-- Reverse Volume → Dip lookup.
+- Minimal black-and-yellow Wiz design; light and dark follow the device setting.
+- Dip → Volume lookup and reverse Volume → Dip lookup for the bundled 10, 15, 20, 50 and 70 KL charts.
+- One-tap tank switching from a row of chips; each tank shows its product name (Petrol, Diesel or custom).
+- Each tank remembers its own last dip, so switching tanks never loses an entry.
+- Fill level bar with % full and space left (capacity minus chart volume) for planning tanker unloads.
+- **Today's stock**: every tank dipped today, with per-product totals; copy or share the report as text.
+- Copy and share any single reading.
 - Decimal dip interpolation between adjacent whole-centimetre chart rows.
-- Tank-specific P1, P2 and deadwood information displayed with the selected tank.
+- Tank-specific P1, P2 and deadwood information shown with the selected tank.
 - Offline calibration data stored in `app/src/main/assets/charts.json`.
-- Last selected tank and last dip remembered locally.
-- Light and dark appearance follows the device setting.
 - No ads, account, network permission, or analytics SDK.
 
 ## App identity
 - Display name: Wiz Dip Charts
 - Application ID: `com.wizlabs.wizdipcharts`
-- Version: 1.0.0 (versionCode 1)
+- Version: 1.5 (versionCode 3)
 - Minimum Android: 7.0 (API 24)
 - Target Android: 16 (API 36)
 

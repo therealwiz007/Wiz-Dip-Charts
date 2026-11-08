@@ -170,7 +170,8 @@ private val timeFmt get() = SimpleDateFormat("h:mm a", Locale.getDefault())
 private val dateFmt get() = SimpleDateFormat("d MMM yyyy, h:mm a", Locale.getDefault())
 
 private fun capacity(t: Tank) = t.volumes[t.maxDipCm]
-private fun chartTitle(t: Tank) = t.name.substringAfter(" · ", t.name)
+/** Name without the KL prefix, e.g. "625×211 DW: 18 L". */
+private fun chartTitle(t: Tank) = t.label.substringAfter(" - ", t.label)
 
 /** One tank's entry in today's stock list. */
 private class StockEntry(val tank: Tank, val product: String, val dip: Double, val volume: Double, val at: Long)
@@ -246,7 +247,7 @@ fun TankDipApp(tanks: List<Tank>) {
 
     fun tankLine(t: Tank): String {
         val p = productOf(t)
-        return if (p.isNotEmpty()) "$p · ${t.kl} KL" else "${t.kl} KL · ${chartTitle(t)}"
+        return if (p.isNotEmpty()) "$p · ${t.label}" else t.label
     }
     fun copy(text: String, toast: String) {
         clipboard.setText(AnnotatedString(text))
@@ -301,9 +302,9 @@ fun TankDipApp(tanks: List<Tank>) {
             /* ---- Selected tank details ---- */
             Row(Modifier.fillMaxWidth().padding(start = 4.dp, top = 6.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(chartTitle(tank), color = pal.label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(tank.label, color = pal.label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(
-                        "${tank.dimensionsLabel} · P1 ${tank.p1Cm} · P2 ${tank.p2Cm} · Deadwood ${tank.deadwoodLitres} L",
+                        "P1 ${tank.p1Cm} cm · P2 ${tank.p2Cm} cm · Max dip ${tank.maxDipCm} cm",
                         color = pal.tertiary, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     )
                 }
@@ -407,7 +408,7 @@ fun TankDipApp(tanks: List<Tank>) {
             title = { Text(if (productNames[id].isNullOrBlank()) "Name the product" else "Edit product name", color = pal.label, fontWeight = FontWeight.SemiBold) },
             text = {
                 Column {
-                    Text(chart?.name ?: "Selected tank", color = pal.secondary, fontSize = 13.sp)
+                    Text(chart?.label ?: "Selected tank", color = pal.secondary, fontSize = 13.sp)
                     Spacer(Modifier.height(10.dp))
                     BasicTextField(
                         value = renameValue,
@@ -667,7 +668,7 @@ private fun productTotals(stock: List<StockEntry>): List<Pair<String, Double>> {
 private fun stockReport(stock: List<StockEntry>): String = buildString {
     append("Tank stock · ").append(dateFmt.format(Date())).append('\n')
     stock.forEach { e ->
-        val name = if (e.product.isNotEmpty()) "${e.product} (${e.tank.kl} KL)" else "${e.tank.kl} KL ${chartTitle(e.tank)}"
+        val name = if (e.product.isNotEmpty()) "${e.product} (${e.tank.label})" else e.tank.label
         append(name).append(": ").append(dipFmt.format(e.dip)).append(" cm = ").append(volFmt.format(e.volume)).append(" L\n")
     }
     val totals = productTotals(stock)
@@ -717,8 +718,8 @@ private fun ManageChartsDialog(
                                 colors = CheckboxDefaults.colors(checkedColor = Yellow, checkmarkColor = Color(0xFF111113), uncheckedColor = pal.tertiary),
                             )
                             Column(Modifier.weight(1f)) {
-                                Text(chart.name, color = pal.label, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                                Text("${chart.dimensionsLabel} · P1 ${chart.p1Cm} · P2 ${chart.p2Cm}", color = pal.tertiary, fontSize = 12.sp)
+                                Text(chart.label, color = pal.label, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                                Text("P1 ${chart.p1Cm} · P2 ${chart.p2Cm} · Max dip ${chart.maxDipCm} cm", color = pal.tertiary, fontSize = 12.sp)
                                 if (isChecked) {
                                     BasicTextField(
                                         value = productNames[chart.id] ?: "",

@@ -1,12 +1,26 @@
-<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
-    <path android:fillColor="#00000000" android:strokeColor="#FFFFFF" android:strokeWidth="3" android:strokeLineCap="round" android:pathData="M18,40 Q18,32 27,32 L68,32 Q76,32 76,40 L76,59 Q76,66 68,66 L27,66 Q18,66 18,59 Z"/>
-    <path android:fillColor="#B8D8F2" android:pathData="M23,39 L69,39 L69,59 L23,59 Z"/>
-    <path android:fillColor="#FFFFFF" android:pathData="M76,43 L86,43 L92,51 L92,65 L75,65 Z"/>
-    <path android:fillColor="#1476C8" android:pathData="M80,47 L85,47 L89,52 L80,52 Z"/>
-    <path android:fillColor="#F5B942" android:pathData="M76,60 L92,60 L92,65 L76,65 Z"/>
-    <path android:fillColor="#0A4E8C" android:pathData="M19,65 L92,65 L92,70 L19,70 Z"/>
-    <path android:fillColor="#FFFFFF" android:pathData="M43,12 C43,12 31,29 31,36 C31,46 38,52 47,52 C56,52 63,46 63,36 C63,29 47,12 47,12 Z"/>
-    <path android:fillColor="#0789E8" android:pathData="M47,19 C47,19 38,31 38,37 C38,43 42,47 47,47 C53,47 57,43 57,37 C57,31 47,19 47,19 Z"/>
-    <path android:fillColor="#FFFFFF" android:pathData="M30,78 L78,78 L78,82 L30,82 Z"/>
-    <path android:fillColor="#F5B942" android:pathData="M36,85 L72,85 L72,89 L36,89 Z"/>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- Wiz Dip Charts mark: capsule tank, fuel wave, dip rod with level marker. -->
+    <path android:fillColor="#F4F4F2" android:pathData="M50,31 L58,31 Q60,31 60,33 L60,38 L48,38 L48,33 Q48,31 50,31 Z"/>
+    <group>
+        <clip-path android:pathData="M37,38 L71,38 A17,17 0 0 1 71,72 L37,72 A17,17 0 0 1 37,38 Z"/>
+        <path android:fillColor="#2A2A2E" android:pathData="M20,38 L88,38 L88,72 L20,72 Z"/>
+        <path android:fillColor="#73FFC400" android:pathData="M20,54 C32,50 42,58 54,54 C66,50 76,58 88,54 L88,72 L20,72 Z"/>
+        <path android:pathData="M20,57 C31,61 43,53 54,57 C65,61 77,53 88,57 L88,72 L20,72 Z">
+            <aapt:attr name="android:fillColor">
+                <gradient android:type="linear" android:startX="54" android:startY="53" android:endX="54" android:endY="72">
+                    <item android:offset="0" android:color="#FFFFC400"/>
+                    <item android:offset="1" android:color="#FFFF9F0A"/>
+                </gradient>
+            </aapt:attr>
+        </path>
+    </group>
+    <path android:fillColor="#00000000" android:strokeColor="#F4F4F2" android:strokeWidth="3.5"
+        android:pathData="M37,38 L71,38 A17,17 0 0 1 71,72 L37,72 A17,17 0 0 1 37,38 Z"/>
+    <path android:fillColor="#00000000" android:strokeColor="#F4F4F2" android:strokeWidth="3" android:strokeLineCap="round"
+        android:pathData="M54,26 L54,69"/>
+    <path android:fillColor="#FFC400" android:strokeColor="#111113" android:strokeWidth="2"
+        android:pathData="M49.6,57 A4.4,4.4 0 1 1 58.4,57 A4.4,4.4 0 1 1 49.6,57 Z"/>
 </vector>

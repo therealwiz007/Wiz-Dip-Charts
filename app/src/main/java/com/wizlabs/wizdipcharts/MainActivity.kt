@@ -6,10 +6,30 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.text.format.DateUtils
+import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -19,9 +39,9 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -31,6 +51,7 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -40,24 +61,30 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -69,21 +96,24 @@ import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -94,7 +124,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import android.widget.Toast
+import kotlinx.coroutines.delay
 import java.text.DecimalFormat
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -119,7 +149,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val tanks = Calibration.load(this)
-        setContent { CappedFontScale { TankDipApp(tanks) } }
+        setContent { CappedFontScale { WizTheme { TankDipApp(tanks) } } }
     }
 }
 
@@ -132,7 +162,7 @@ private fun CappedFontScale(content: @Composable () -> Unit) {
 
 /* ---------- Palette: Wiz black & yellow, calm neutrals ---------- */
 
-private class Pal(
+internal class Pal(
     val bg: Color,
     val card: Color,
     val field: Color,
@@ -145,24 +175,41 @@ private class Pal(
     val onAccent: Color,
     val accentSoft: Color,
     val error: Color,
+    val dark: Boolean,
 )
 
-private val Yellow = Color(0xFFFFC400)
+internal val Yellow = Color(0xFFFFC400)
+internal val Ink = Color(0xFF111113)
 
 private val LightPal = Pal(
     bg = Color(0xFFF6F6F3), card = Color.White, field = Color(0xFFEDEDE7), raised = Color.White,
-    label = Color(0xFF111113), secondary = Color(0xFF5C5C63), tertiary = Color(0xFF8E8E95),
-    separator = Color(0xFFE7E6E0), accent = Yellow, onAccent = Color(0xFF111113),
-    accentSoft = Color(0xFFFFF4CC), error = Color(0xFFC2410C),
+    label = Ink, secondary = Color(0xFF5C5C63), tertiary = Color(0xFF8E8E95),
+    separator = Color(0xFFE7E6E0), accent = Yellow, onAccent = Ink,
+    accentSoft = Color(0xFFFFF4CC), error = Color(0xFFC2410C), dark = false,
 )
 private val DarkPal = Pal(
     bg = Color(0xFF0B0B0C), card = Color(0xFF151517), field = Color(0xFF1D1D20), raised = Color(0xFF34343A),
     label = Color(0xFFF4F4F2), secondary = Color(0xFFB4B4BA), tertiary = Color(0xFF77777F),
-    separator = Color(0xFF242428), accent = Yellow, onAccent = Color(0xFF111113),
-    accentSoft = Color(0xFF2B2510), error = Color(0xFFFF8A65),
+    separator = Color(0xFF242428), accent = Yellow, onAccent = Ink,
+    accentSoft = Color(0xFF2B2510), error = Color(0xFFFF8A65), dark = true,
 )
 
-private val CardShape = RoundedCornerShape(20.dp)
+/** Material components (menus, dialogs, text handles) themed Wiz yellow with no tonal tint. */
+@Composable
+private fun WizTheme(content: @Composable () -> Unit) {
+    val p = if (isSystemInDarkTheme()) DarkPal else LightPal
+    val scheme = if (p.dark) {
+        darkColorScheme(primary = Yellow, onPrimary = Ink, surface = p.card, onSurface = p.label, background = p.bg,
+            surfaceTint = Color.Transparent, surfaceContainer = p.card, surfaceContainerHigh = p.card, onSurfaceVariant = p.secondary)
+    } else {
+        lightColorScheme(primary = Ink, onPrimary = Color.White, surface = p.card, onSurface = p.label, background = p.bg,
+            surfaceTint = Color.Transparent, surfaceContainer = p.card, surfaceContainerHigh = p.card, onSurfaceVariant = p.secondary)
+    }
+    MaterialTheme(colorScheme = scheme, content = content)
+}
+
+private val CardShape = RoundedCornerShape(24.dp)
+private val Tabular = "tnum"
 private val volFmt = DecimalFormat("#,##0.0")
 private val volFmt0 = DecimalFormat("#,##0")
 private val dipFmt = DecimalFormat("0.0")
@@ -212,6 +259,7 @@ fun TankDipApp(tanks: List<Tank>) {
     }
 
     var showManageCharts by remember { mutableStateOf(!chartsConfigured) }
+    var showFindChart by rememberSaveable { mutableStateOf(false) }
     var renameChartId by remember { mutableStateOf<String?>(null) }
     var renameValue by remember { mutableStateOf("") }
     var volumeText by rememberSaveable { mutableStateOf("") }
@@ -249,9 +297,14 @@ fun TankDipApp(tanks: List<Tank>) {
         val p = productOf(t)
         return if (p.isNotEmpty()) "$p · ${t.label}" else t.label
     }
-    fun copy(text: String, toast: String) {
+    fun copy(text: String, toast: String?) {
         clipboard.setText(AnnotatedString(text))
-        Toast.makeText(context, toast, Toast.LENGTH_SHORT).show()
+        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+        if (toast != null) Toast.makeText(context, toast, Toast.LENGTH_SHORT).show()
+    }
+    fun share(title: String, text: String) {
+        haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        shareText(context, title, text)
     }
 
     Box(Modifier.fillMaxSize().background(pal.bg)) {
@@ -264,17 +317,21 @@ fun TankDipApp(tanks: List<Tank>) {
                 .padding(bottom = 24.dp),
         ) {
             /* ---- Top bar ---- */
-            Row(Modifier.fillMaxWidth().height(60.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().height(64.dp).enterStagger(0), verticalAlignment = Alignment.CenterVertically) {
                 AppMark()
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("Dip Charts", color = pal.label, fontSize = 19.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.3).sp)
+                    Text("Dip Charts", color = pal.label, fontSize = 20.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.3).sp)
                     Text("Tank calibration · offline", color = pal.tertiary, fontSize = 13.sp)
                 }
                 Box {
                     IconButton(onClick = { menuOpen = true }) { Icon(Icons.Default.MoreVert, "More options", tint = pal.secondary) }
-                    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }, containerColor = pal.card) {
+                    DropdownMenu(
+                        expanded = menuOpen, onDismissRequest = { menuOpen = false }, containerColor = pal.card,
+                        shape = RoundedCornerShape(18.dp), tonalElevation = 0.dp, shadowElevation = 8.dp,
+                    ) {
                         MenuItem(Icons.Default.List, "My charts", pal) { menuOpen = false; showManageCharts = true }
+                        MenuItem(Icons.Default.Search, "Find my chart", pal) { menuOpen = false; showFindChart = true }
                         MenuItem(Icons.Default.Share, "Share app", pal) { menuOpen = false; shareText(context, "Share app", "Wiz Dip Charts – quick tank calibration lookup from dip reading.\n$SHARE_LINK") }
                         MenuItem(Icons.Default.Star, "Rate app", pal) { menuOpen = false; rateApp(context) }
                     }
@@ -283,7 +340,7 @@ fun TankDipApp(tanks: List<Tank>) {
 
             /* ---- Tank chips ---- */
             Row(
-                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(vertical = 4.dp),
+                Modifier.fillMaxWidth().enterStagger(1).horizontalScroll(rememberScrollState()).padding(vertical = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 visibleTanks.forEach { t ->
@@ -293,118 +350,202 @@ fun TankDipApp(tanks: List<Tank>) {
                     }
                 }
                 Box(
-                    Modifier.height(54.dp).clip(RoundedCornerShape(14.dp)).border(1.dp, pal.separator, RoundedCornerShape(14.dp))
-                        .clickable { showManageCharts = true }.padding(horizontal = 14.dp),
+                    Modifier.height(56.dp).clip(RoundedCornerShape(16.dp)).border(1.dp, pal.separator, RoundedCornerShape(16.dp))
+                        .pressClick { showManageCharts = true }.padding(horizontal = 16.dp),
                     contentAlignment = Alignment.Center,
                 ) { Icon(Icons.Default.Add, "Manage my charts", tint = pal.secondary, modifier = Modifier.size(20.dp)) }
             }
 
-            /* ---- Selected tank details ---- */
-            Row(Modifier.fillMaxWidth().padding(start = 4.dp, top = 6.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(tank.label, color = pal.label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(
-                        "P1 ${tank.p1Cm} cm · P2 ${tank.p2Cm} cm · Max dip ${tank.maxDipCm} cm",
-                        color = pal.tertiary, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                IconButton(onClick = { renameChartId = tank.id; renameValue = productOf(tank) }, modifier = Modifier.size(40.dp)) {
-                    Icon(Icons.Default.Edit, "Edit product name", tint = pal.tertiary, modifier = Modifier.size(18.dp))
+            /* ---- Selected tank details (crossfades on tank change) ---- */
+            AnimatedContent(
+                targetState = tank,
+                transitionSpec = { (fadeIn(tween(220)) + slideInVertically(tween(260)) { it / 3 }) togetherWith fadeOut(tween(140)) },
+                contentKey = { it.id },
+                label = "tankDetails",
+                modifier = Modifier.enterStagger(2),
+            ) { t ->
+                Row(Modifier.fillMaxWidth().padding(start = 4.dp, top = 8.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(t.label, color = pal.label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (!t.hasDeadwood) { NoDwBadge(pal); Spacer(Modifier.width(6.dp)) }
+                            Text(
+                                "P1 ${t.p1Cm} cm · P2 ${t.p2Cm} cm · Max dip ${t.maxDipCm} cm",
+                                color = pal.tertiary, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                    IconButton(onClick = { renameChartId = t.id; renameValue = productOf(t) }, modifier = Modifier.size(40.dp)) {
+                        Icon(Icons.Default.Edit, "Edit product name", tint = pal.tertiary, modifier = Modifier.size(18.dp))
+                    }
                 }
             }
 
             /* ---- Mode ---- */
-            SegmentedControl(listOf("Dip → Volume", "Volume → Dip"), if (reverse) 1 else 0, pal) { index ->
+            SegmentedControl(listOf("Dip → Volume", "Volume → Dip"), if (reverse) 1 else 0, pal, Modifier.enterStagger(3)) { index ->
                 if ((index == 1) != reverse) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 reverse = index == 1
             }
             Spacer(Modifier.height(12.dp))
 
-            /* ---- Input + result in one card ---- */
-            Column(Modifier.fillMaxWidth().background(pal.card, CardShape).border(1.dp, pal.separator, CardShape)) {
-                if (!reverse) {
-                    NumberField(
-                        label = "Dip", hint = "max ${tank.maxDipCm} cm", value = dipText, unit = "cm", maxLength = 7, pal = pal,
-                        error = forward is DipResult.Invalid || forward is DipResult.OutOfRange,
-                        onDone = { keyboard?.hide() }, onChange = ::setDip,
-                    )
-                    HLine(pal)
-                    when (forward) {
-                        is DipResult.Ok -> ResultBlock(
-                            label = "Volume", value = volFmt.format(forward.netVolume), unit = "L",
-                            fill = (forward.netVolume / capacity(tank)).toFloat(),
-                            space = capacity(tank) - forward.netVolume, pal = pal,
-                            onCopy = { copy(volFmt.format(forward.netVolume), "Copied") },
+            /* ---- Input + live tank hero in one card ---- */
+            AnimatedContent(
+                targetState = reverse,
+                transitionSpec = {
+                    val dir = if (targetState) 1 else -1
+                    (slideInHorizontally(tween(320, easing = FastOutSlowInEasing)) { dir * it / 4 } + fadeIn(tween(260))) togetherWith
+                        (slideOutHorizontally(tween(260)) { -dir * it / 4 } + fadeOut(tween(160)))
+                },
+                label = "mode",
+                modifier = Modifier.enterStagger(4),
+            ) { rev ->
+                Column(Modifier.fillMaxWidth().background(pal.card, CardShape).border(1.dp, pal.separator, CardShape)) {
+                    if (!rev) {
+                        NumberField(
+                            label = "Dip", hint = "max ${tank.maxDipCm} cm", value = dipText, unit = "cm", maxLength = 7, pal = pal,
+                            error = forward is DipResult.Invalid || forward is DipResult.OutOfRange,
+                            onDone = { keyboard?.hide() }, onChange = ::setDip,
+                        )
+                        HLine(pal, inset = 20.dp)
+                        val ok = forward as? DipResult.Ok
+                        val dipNum = dipText.trim().replace(',', '.').toDoubleOrNull()
+                        ResultArea(
+                            label = "Volume", unit = "L", value = ok?.netVolume, format = volFmt::format,
+                            message = when (forward) {
+                                is DipResult.Ok -> null
+                                DipResult.Empty -> "Enter a dip to see the volume"
+                                DipResult.Invalid -> "Enter a valid number"
+                                is DipResult.OutOfRange -> "Above the tank maximum of ${forward.maxDipCm} cm"
+                            },
+                            error = forward is DipResult.Invalid || forward is DipResult.OutOfRange,
+                            level = when {
+                                ok != null && dipNum != null -> (dipNum / tank.maxDipCm).toFloat()
+                                forward is DipResult.OutOfRange -> 1f
+                                else -> 0f
+                            },
+                            fill = ok?.let { (it.netVolume / capacity(tank)).toFloat() },
+                            space = ok?.let { capacity(tank) - it.netVolume },
+                            pal = pal,
+                            onCopy = { ok?.let { copy(volFmt.format(it.netVolume), null) } },
                             onShare = {
-                                shareText(context, "Share reading", "${tankLine(tank)}\nDip ${dipText.replace(',', '.')} cm = ${volFmt.format(forward.netVolume)} L")
+                                ok?.let { share("Share reading", "${tankLine(tank)}\nDip ${dipText.replace(',', '.')} cm = ${volFmt.format(it.netVolume)} L") }
                             },
                         )
-                        DipResult.Empty -> EmptyResult("Enter a dip to see the volume", pal)
-                        DipResult.Invalid -> EmptyResult("Enter a valid number", pal, error = true)
-                        is DipResult.OutOfRange -> EmptyResult("Above the tank maximum of ${forward.maxDipCm} cm", pal, error = true)
-                    }
-                } else {
-                    NumberField(
-                        label = "Volume", hint = "max ${volFmt0.format(capacity(tank))} L", value = volumeText, unit = "L", maxLength = 9, pal = pal,
-                        error = back is DipForVolumeResult.Invalid || back is DipForVolumeResult.OutOfRange,
-                        onDone = { keyboard?.hide() }, onChange = { volumeText = it },
-                    )
-                    HLine(pal)
-                    when (back) {
-                        is DipForVolumeResult.Ok -> ResultBlock(
-                            label = "Dip", value = dipFmt.format(back.dipCm), unit = "cm",
-                            fill = (back.chartVolume / capacity(tank)).toFloat(),
-                            space = capacity(tank) - back.chartVolume, pal = pal,
-                            onCopy = { copy(dipFmt.format(back.dipCm), "Copied") },
+                    } else {
+                        NumberField(
+                            label = "Volume", hint = "max ${volFmt0.format(capacity(tank))} L", value = volumeText, unit = "L", maxLength = 9, pal = pal,
+                            error = back is DipForVolumeResult.Invalid || back is DipForVolumeResult.OutOfRange,
+                            onDone = { keyboard?.hide() }, onChange = { volumeText = it },
+                        )
+                        HLine(pal, inset = 20.dp)
+                        val ok = back as? DipForVolumeResult.Ok
+                        ResultArea(
+                            label = "Dip", unit = "cm", value = ok?.dipCm, format = dipFmt::format,
+                            message = when (back) {
+                                is DipForVolumeResult.Ok -> null
+                                DipForVolumeResult.Empty -> "Enter a volume to see the dip"
+                                DipForVolumeResult.Invalid -> "Enter a valid number"
+                                is DipForVolumeResult.OutOfRange -> "Above tank capacity of ${volFmt0.format(back.maxVolumeLitres)} L"
+                            },
+                            error = back is DipForVolumeResult.Invalid || back is DipForVolumeResult.OutOfRange,
+                            level = when {
+                                ok != null -> (ok.dipCm / tank.maxDipCm).toFloat()
+                                back is DipForVolumeResult.OutOfRange -> 1f
+                                else -> 0f
+                            },
+                            fill = ok?.let { (it.chartVolume / capacity(tank)).toFloat() },
+                            space = ok?.let { capacity(tank) - it.chartVolume },
+                            pal = pal,
+                            onCopy = { ok?.let { copy(dipFmt.format(it.dipCm), null) } },
                             onShare = {
-                                shareText(context, "Share reading", "${tankLine(tank)}\n${volFmt.format(back.chartVolume)} L = dip ${dipFmt.format(back.dipCm)} cm")
+                                ok?.let { share("Share reading", "${tankLine(tank)}\n${volFmt.format(it.chartVolume)} L = dip ${dipFmt.format(it.dipCm)} cm") }
                             },
                         )
-                        DipForVolumeResult.Empty -> EmptyResult("Enter a volume to see the dip", pal)
-                        DipForVolumeResult.Invalid -> EmptyResult("Enter a valid number", pal, error = true)
-                        is DipForVolumeResult.OutOfRange -> EmptyResult("Above tank capacity of ${volFmt0.format(back.maxVolumeLitres)} L", pal, error = true)
                     }
                 }
             }
 
             /* ---- Today's stock ---- */
-            if (stock.isNotEmpty()) {
-                Spacer(Modifier.height(12.dp))
-                StockCard(
-                    stock, tank.id, pal,
-                    onPick = { t -> selectTank(t); reverse = false },
-                    onShare = { shareText(context, "Share stock", stockReport(stock)) },
-                    onCopy = { copy(stockReport(stock), "Stock copied") },
-                    nameOf = ::tankLine,
-                )
+            AnimatedVisibility(
+                visible = stock.isNotEmpty(),
+                enter = fadeIn(tween(260)) + expandVertically(tween(320, easing = FastOutSlowInEasing)),
+                exit = fadeOut(tween(160)) + shrinkVertically(tween(240)),
+                modifier = Modifier.enterStagger(5),
+            ) {
+                Column {
+                    Spacer(Modifier.height(12.dp))
+                    StockCard(
+                        stock, tank.id, pal,
+                        onPick = { t -> selectTank(t); reverse = false },
+                        onShare = { share("Share stock", stockReport(stock)) },
+                        onCopy = { copy(stockReport(stock), "Stock copied") },
+                        nameOf = ::tankLine,
+                    )
+                }
             }
 
             Text(
                 "Chart volumes are shown as printed. Deadwood is listed for reference and is not deducted.",
                 color = pal.tertiary, fontSize = 12.sp, lineHeight = 17.sp,
-                modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 14.dp),
+                modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 14.dp).enterStagger(6),
             )
+        }
+
+        /* ---- My charts: full-screen page that slides in ---- */
+        AnimatedVisibility(
+            visible = showManageCharts,
+            enter = slideInHorizontally(tween(340, easing = FastOutSlowInEasing)) { it } + fadeIn(tween(200)),
+            exit = slideOutHorizontally(tween(280)) { it } + fadeOut(tween(220)),
+        ) {
+            ManageChartsScreen(
+                tanks, selectedIds, productNames, pal,
+                onDismiss = { showManageCharts = false },
+                onFind = { showManageCharts = false; showFindChart = true },
+            ) {
+                chartsConfigured = true
+                val edit = prefs.edit().putStringSet(KEY_MY_CHARTS, selectedIds.toSet()).putBoolean(KEY_MY_CHARTS_CONFIGURED, true)
+                productNames.forEach { (id, name) -> edit.putString(KEY_PRODUCT_PREFIX + id, name.trim()) }
+                edit.apply()
+                val next = tanks.firstOrNull { it.id == selectedChartId && (selectedIds.isEmpty() || it.id in selectedIds) }
+                    ?: tanks.firstOrNull { selectedIds.isEmpty() || it.id in selectedIds } ?: tanks.first()
+                selectedChartId = next.id
+                prefs.edit().putString(KEY_LAST_TANK, next.id).apply()
+                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                showManageCharts = false
+            }
+        }
+
+        /* ---- Find my chart: match the dealer's readings against every chart ---- */
+        AnimatedVisibility(
+            visible = showFindChart,
+            enter = slideInHorizontally(tween(340, easing = FastOutSlowInEasing)) { it } + fadeIn(tween(200)),
+            exit = slideOutHorizontally(tween(280)) { it } + fadeOut(tween(220)),
+        ) {
+            FindChartScreen(
+                tanks, pal,
+                isSaved = { t -> chartsConfigured && t.id in selectedIds },
+                onDismiss = { showFindChart = false },
+            ) { t ->
+                if (!(chartsConfigured && t.id in selectedIds)) {
+                    if (!chartsConfigured) selectedIds.clear()
+                    selectedIds.add(t.id)
+                }
+                chartsConfigured = true
+                prefs.edit().putStringSet(KEY_MY_CHARTS, selectedIds.toSet()).putBoolean(KEY_MY_CHARTS_CONFIGURED, true)
+                    .putString(KEY_LAST_TANK, t.id).apply()
+                selectedChartId = t.id
+                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+            }
         }
     }
 
-    if (showManageCharts) {
-        ManageChartsDialog(tanks, selectedIds, productNames, pal, onDismiss = { showManageCharts = false }) {
-            chartsConfigured = true
-            val edit = prefs.edit().putStringSet(KEY_MY_CHARTS, selectedIds.toSet()).putBoolean(KEY_MY_CHARTS_CONFIGURED, true)
-            productNames.forEach { (id, name) -> edit.putString(KEY_PRODUCT_PREFIX + id, name.trim()) }
-            edit.apply()
-            val next = tanks.firstOrNull { it.id == selectedChartId && (selectedIds.isEmpty() || it.id in selectedIds) }
-                ?: tanks.firstOrNull { selectedIds.isEmpty() || it.id in selectedIds } ?: tanks.first()
-            selectedChartId = next.id
-            prefs.edit().putString(KEY_LAST_TANK, next.id).apply()
-            showManageCharts = false
-        }
-    }
     renameChartId?.let { id ->
         val chart = tanks.firstOrNull { it.id == id }
         AlertDialog(
             onDismissRequest = { renameChartId = null },
             containerColor = pal.card,
+            tonalElevation = 0.dp,
+            shape = RoundedCornerShape(26.dp),
             title = { Text(if (productNames[id].isNullOrBlank()) "Name the product" else "Edit product name", color = pal.label, fontWeight = FontWeight.SemiBold) },
             text = {
                 Column {
@@ -416,15 +557,17 @@ fun TankDipApp(tanks: List<Tank>) {
                         singleLine = true,
                         textStyle = TextStyle(color = pal.label, fontSize = 17.sp),
                         cursorBrush = SolidColor(pal.label),
-                        modifier = Modifier.fillMaxWidth().background(pal.field, RoundedCornerShape(12.dp)).padding(14.dp),
+                        modifier = Modifier.fillMaxWidth().background(pal.field, RoundedCornerShape(14.dp)).padding(14.dp),
                         decorationBox = { inner -> Box { if (renameValue.isEmpty()) Text("e.g. Petrol, Diesel", color = pal.tertiary, fontSize = 17.sp); inner() } },
                     )
                     Spacer(Modifier.height(10.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         listOf("Petrol", "Diesel", "Premium").forEach { s ->
+                            val on = renameValue.trim().equals(s, ignoreCase = true)
+                            val bg by animateColorAsState(if (on) pal.accent else pal.field, label = "suggest")
                             Text(
-                                s, color = pal.secondary, fontSize = 13.sp,
-                                modifier = Modifier.clip(CircleShape).background(pal.field).clickable { renameValue = s }.padding(horizontal = 10.dp, vertical = 6.dp),
+                                s, color = if (on) pal.onAccent else pal.secondary, fontSize = 13.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
+                                modifier = Modifier.clip(CircleShape).drawBehind { drawRect(bg) }.pressClick { renameValue = s }.padding(horizontal = 12.dp, vertical = 7.dp),
                             )
                         }
                     }
@@ -434,6 +577,7 @@ fun TankDipApp(tanks: List<Tank>) {
                 TextButton(onClick = {
                     productNames[id] = renameValue.trim()
                     prefs.edit().putString(KEY_PRODUCT_PREFIX + id, renameValue.trim()).apply()
+                    haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                     renameChartId = null
                 }) { Text("Save", color = pal.label, fontWeight = FontWeight.SemiBold) }
             },
@@ -447,14 +591,13 @@ fun TankDipApp(tanks: List<Tank>) {
 /** Small yellow tile with a tank and dip-rod glyph. */
 @Composable
 private fun AppMark() {
-    Box(Modifier.size(36.dp).background(Yellow, RoundedCornerShape(11.dp)), contentAlignment = Alignment.Center) {
-        Canvas(Modifier.size(20.dp)) {
-            val ink = Color(0xFF111113)
+    Box(Modifier.size(38.dp).background(Yellow, RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
+        Canvas(Modifier.size(21.dp)) {
             val w = size.width; val h = size.height
             val s = w * 0.11f
-            drawRoundRect(ink, topLeft = Offset(w * 0.08f, h * 0.32f), size = Size(w * 0.84f, h * 0.56f), cornerRadius = CornerRadius(h * 0.26f), style = Stroke(s))
-            drawLine(ink, Offset(w * 0.5f, h * 0.06f), Offset(w * 0.5f, h * 0.74f), strokeWidth = s, cap = StrokeCap.Round)
-            drawLine(ink, Offset(w * 0.2f, h * 0.66f), Offset(w * 0.8f, h * 0.66f), strokeWidth = s * 0.8f, cap = StrokeCap.Round)
+            drawRoundRect(Ink, topLeft = Offset(w * 0.08f, h * 0.32f), size = Size(w * 0.84f, h * 0.56f), cornerRadius = CornerRadius(h * 0.26f), style = Stroke(s))
+            drawLine(Ink, Offset(w * 0.5f, h * 0.06f), Offset(w * 0.5f, h * 0.74f), strokeWidth = s, cap = StrokeCap.Round)
+            drawLine(Ink, Offset(w * 0.2f, h * 0.66f), Offset(w * 0.8f, h * 0.66f), strokeWidth = s * 0.8f, cap = StrokeCap.Round)
         }
     }
 }
@@ -470,13 +613,18 @@ private fun MenuItem(icon: ImageVector, label: String, pal: Pal, onClick: () -> 
 
 @Composable
 private fun TankChip(t: Tank, product: String, selected: Boolean, hasDip: Boolean, pal: Pal, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(14.dp)
-    val bg = if (selected) pal.accent else pal.card
+    val shape = RoundedCornerShape(16.dp)
+    val bg = animateColorAsState(if (selected) pal.accent else pal.card, tween(220), label = "chipBg")
+    val stroke = animateColorAsState(if (selected) pal.accent else pal.separator, tween(220), label = "chipStroke")
     val fg = if (selected) pal.onAccent else pal.label
     val sub = if (selected) pal.onAccent.copy(alpha = 0.65f) else pal.tertiary
     Row(
-        Modifier.height(54.dp).clip(shape).background(bg).border(1.dp, if (selected) pal.accent else pal.separator, shape)
-            .clickable(onClick = onClick).padding(horizontal = 14.dp),
+        Modifier.height(56.dp).clip(shape)
+            .drawBehind {
+                drawRect(bg.value)
+                drawRoundRect(stroke.value, cornerRadius = CornerRadius(16.dp.toPx()), style = Stroke(1.dp.toPx()))
+            }
+            .pressClick(onClick = onClick).padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column {
@@ -487,26 +635,37 @@ private fun TankChip(t: Tank, product: String, selected: Boolean, hasDip: Boolea
                 modifier = Modifier.widthIn(max = 130.dp),
             )
         }
-        if (hasDip) {
-            Spacer(Modifier.width(8.dp))
-            Box(Modifier.size(6.dp).background(if (selected) pal.onAccent else Yellow, CircleShape))
+        AnimatedVisibility(hasDip, enter = scaleIn(spring(dampingRatio = 0.45f)) + fadeIn(), exit = scaleOut() + fadeOut()) {
+            Row {
+                Spacer(Modifier.width(8.dp))
+                Box(Modifier.size(7.dp).background(if (selected) pal.onAccent else Yellow, CircleShape))
+            }
         }
     }
 }
 
+/** Two-way switch with a sliding pill drawn in the draw phase. */
 @Composable
-private fun SegmentedControl(options: List<String>, selectedIndex: Int, pal: Pal, onSelect: (Int) -> Unit) {
-    Row(Modifier.fillMaxWidth().background(pal.field, RoundedCornerShape(14.dp)).padding(4.dp)) {
+private fun SegmentedControl(options: List<String>, selectedIndex: Int, pal: Pal, modifier: Modifier = Modifier, onSelect: (Int) -> Unit) {
+    val pos = animateFloatAsState(selectedIndex.toFloat(), spring(dampingRatio = 0.72f, stiffness = 420f), label = "seg")
+    val pill = pal.raised
+    val dark = pal.dark
+    Row(
+        modifier.fillMaxWidth().background(pal.field, RoundedCornerShape(16.dp)).padding(4.dp)
+            .drawBehind {
+                val segW = size.width / options.size
+                if (!dark) drawRoundRect(Color.Black.copy(alpha = 0.05f), Offset(segW * pos.value, 1.dp.toPx()), Size(segW, size.height), CornerRadius(13.dp.toPx()))
+                drawRoundRect(pill, Offset(segW * pos.value, 0f), Size(segW, size.height), CornerRadius(13.dp.toPx()))
+            },
+    ) {
         options.forEachIndexed { index, label ->
             val selected = index == selectedIndex
+            val color by animateColorAsState(if (selected) pal.label else pal.secondary, label = "segText")
             Box(
-                Modifier.weight(1f).clip(RoundedCornerShape(11.dp))
-                    .background(if (selected) pal.raised else Color.Transparent)
-                    .clickable { onSelect(index) }.padding(vertical = 10.dp),
+                Modifier.weight(1f).clip(RoundedCornerShape(13.dp)).clickable { onSelect(index) }.padding(vertical = 11.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(label, color = if (selected) pal.label else pal.secondary, fontSize = 14.sp,
-                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium)
+                Text(label, color = color, fontSize = 14.sp, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium)
             }
         }
     }
@@ -518,9 +677,17 @@ private fun NumberField(
     onDone: () -> Unit, onChange: (String) -> Unit,
 ) {
     var focused by remember { mutableStateOf(false) }
+    val bg = animateColorAsState(if (focused) pal.field else pal.card, tween(200), label = "fieldBg")
+    val line = animateFloatAsState(if (focused) 1f else 0f, tween(320, easing = FastOutSlowInEasing), label = "fieldLine")
+    val lineColor = if (error) pal.error else Yellow
     Column(
-        Modifier.fillMaxWidth().padding(6.dp).clip(RoundedCornerShape(15.dp))
-            .background(if (focused) pal.field else Color.Transparent).padding(horizontal = 14.dp, vertical = 10.dp),
+        Modifier.fillMaxWidth().padding(6.dp).clip(RoundedCornerShape(18.dp))
+            .drawBehind {
+                drawRect(bg.value)
+                val lw = size.width * line.value
+                if (lw > 0f) drawRect(lineColor, Offset((size.width - lw) / 2f, size.height - 3.dp.toPx()), Size(lw, 3.dp.toPx()))
+            }
+            .padding(horizontal = 14.dp, vertical = 10.dp),
     ) {
         Row(Modifier.fillMaxWidth()) {
             Text(label.uppercase(), color = pal.secondary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.8.sp, modifier = Modifier.weight(1f))
@@ -533,8 +700,8 @@ private fun NumberField(
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { onDone() }),
-                textStyle = TextStyle(color = if (error) pal.error else pal.label, fontSize = 38.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-1).sp),
-                cursorBrush = SolidColor(pal.label),
+                textStyle = TextStyle(color = if (error) pal.error else pal.label, fontSize = 38.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-1).sp, fontFeatureSettings = Tabular),
+                cursorBrush = SolidColor(if (pal.dark) Yellow else pal.label),
                 modifier = Modifier.weight(1f).onFocusChanged { focused = it.isFocused },
                 decorationBox = { inner ->
                     Box {
@@ -543,7 +710,7 @@ private fun NumberField(
                     }
                 },
             )
-            if (value.isNotEmpty()) {
+            AnimatedVisibility(value.isNotEmpty(), enter = scaleIn(spring(dampingRatio = 0.5f)) + fadeIn(), exit = scaleOut() + fadeOut()) {
                 IconButton(onClick = { onChange("") }, modifier = Modifier.size(36.dp)) {
                     Icon(Icons.Default.Close, "Clear", tint = pal.tertiary, modifier = Modifier.size(18.dp))
                 }
@@ -554,45 +721,113 @@ private fun NumberField(
     }
 }
 
+/**
+ * The hero: headline number that counts to the exact result, the live tank, fill stats and
+ * actions. When the count finishes the exact [value] is formatted, so results are unchanged.
+ */
 @Composable
-private fun ResultBlock(
-    label: String, value: String, unit: String, fill: Float, space: Double, pal: Pal,
-    onCopy: () -> Unit, onShare: () -> Unit,
+private fun ResultArea(
+    label: String, unit: String, value: Double?, format: (Double) -> String, message: String?, error: Boolean,
+    level: Float, fill: Float?, space: Double?, pal: Pal, onCopy: () -> Unit, onShare: () -> Unit,
 ) {
-    val f by animateFloatAsState(fill.coerceIn(0f, 1f), label = "fill")
-    Column(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 16.dp)) {
+    Column(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 18.dp)) {
         Text(label.uppercase(), color = pal.secondary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.8.sp)
-        Row(verticalAlignment = Alignment.Bottom) {
-            Text(value, color = pal.label, fontSize = 52.sp, fontWeight = FontWeight.Bold, letterSpacing = (-2).sp, maxLines = 1)
-            Spacer(Modifier.width(8.dp))
-            Text(unit, color = pal.tertiary, fontSize = 18.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(bottom = 11.dp))
+        AnimatedContent(
+            targetState = message,
+            transitionSpec = { (fadeIn(tween(220)) + slideInVertically(tween(260)) { it / 4 }) togetherWith fadeOut(tween(120)) },
+            label = "result",
+        ) { msg ->
+            Box(Modifier.fillMaxWidth().heightIn(min = 66.dp), contentAlignment = Alignment.CenterStart) {
+                if (msg == null && value != null) {
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        CountUpText(value, format, pal)
+                        Spacer(Modifier.width(8.dp))
+                        Text(unit, color = pal.tertiary, fontSize = 18.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(bottom = 11.dp))
+                    }
+                } else {
+                    Text(msg.orEmpty(), color = if (error) pal.error else pal.tertiary, fontSize = 15.sp, fontWeight = if (error) FontWeight.Medium else FontWeight.Normal)
+                }
+            }
         }
-        Spacer(Modifier.height(10.dp))
-        Box(Modifier.fillMaxWidth().height(8.dp).clip(CircleShape).background(pal.field)) {
-            Box(Modifier.fillMaxWidth(f).fillMaxHeight().clip(CircleShape).background(Yellow))
-        }
-        Row(Modifier.fillMaxWidth().padding(top = 8.dp)) {
-            Text("${(fill * 100).coerceIn(0f, 100f).let { DecimalFormat("0").format(it) }}% full", color = pal.secondary, fontSize = 13.sp, modifier = Modifier.weight(1f))
-            Text("Space ${volFmt0.format(space.coerceAtLeast(0.0))} L", color = pal.secondary, fontSize = 13.sp)
+        Spacer(Modifier.height(6.dp))
+        TankGauge(level, pal, error, Modifier.fillMaxWidth().height(118.dp))
+        Row(Modifier.fillMaxWidth().padding(top = 10.dp).heightIn(min = 18.dp)) {
+            val f = fill
+            if (f != null && space != null) {
+                Text("${(f * 100).coerceIn(0f, 100f).let { DecimalFormat("0").format(it) }}% full", color = pal.secondary, fontSize = 13.sp, modifier = Modifier.weight(1f))
+                Text("Space ${volFmt0.format(space.coerceAtLeast(0.0))} L", color = pal.secondary, fontSize = 13.sp)
+            } else {
+                Text("Empty tank · waiting for a reading", color = pal.tertiary, fontSize = 13.sp)
+            }
         }
         Spacer(Modifier.height(14.dp))
+        val enabled = value != null && message == null
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ActionButton("Copy", null, pal, Modifier.weight(1f), onCopy)
-            ActionButton("Share", Icons.Default.Share, pal, Modifier.weight(1f), onShare)
+            CopyButton(enabled, pal, Modifier.weight(1f), onCopy)
+            ActionButton("Share", Icons.Default.Share, enabled, primary = true, pal, Modifier.weight(1f), onShare)
+        }
+    }
+}
+
+/** Big number that counts from the last shown value (0 at first) to [target]. */
+@Composable
+private fun CountUpText(target: Double, format: (Double) -> String, pal: Pal) {
+    val progress = remember { Animatable(0f) }
+    var from by remember { mutableDoubleStateOf(0.0) }
+    var to by remember { mutableDoubleStateOf(target) }
+    LaunchedEffect(target) {
+        val p = progress.value
+        from = if (p >= 1f) to else from + (to - from) * p
+        to = target
+        progress.snapTo(0f)
+        progress.animateTo(1f, tween(700, easing = FastOutSlowInEasing))
+    }
+    val p = progress.value
+    val shown = when {
+        to != target -> if (p >= 1f) to else from + (to - from) * p // effect not started yet: hold the old value
+        p >= 1f -> target                                           // finished: the exact result
+        else -> from + (to - from) * p
+    }
+    Text(
+        format(shown), color = pal.label, fontSize = 52.sp, fontWeight = FontWeight.Bold, letterSpacing = (-2).sp, maxLines = 1,
+        style = TextStyle(fontFeatureSettings = Tabular),
+    )
+}
+
+@Composable
+private fun CopyButton(enabled: Boolean, pal: Pal, modifier: Modifier, onCopy: () -> Unit) {
+    var copied by remember { mutableStateOf(false) }
+    LaunchedEffect(copied) { if (copied) { delay(1400); copied = false } }
+    val shape = RoundedCornerShape(14.dp)
+    Box(
+        modifier.height(46.dp).graphicsLayer { alpha = if (enabled) 1f else 0.4f }.clip(shape).border(1.dp, pal.separator, shape)
+            .pressClick(enabled = enabled) { onCopy(); copied = true },
+        contentAlignment = Alignment.Center,
+    ) {
+        AnimatedContent(copied, transitionSpec = { (scaleIn(spring(dampingRatio = 0.5f)) + fadeIn()) togetherWith fadeOut(tween(90)) }, label = "copied") { done ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (done) Icon(Icons.Default.Check, null, tint = pal.label, modifier = Modifier.size(17.dp)) else CopyGlyph(pal.label)
+                Spacer(Modifier.width(7.dp))
+                Text(if (done) "Copied" else "Copy", color = pal.label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            }
         }
     }
 }
 
 @Composable
-private fun ActionButton(label: String, icon: ImageVector?, pal: Pal, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(12.dp)
+private fun ActionButton(label: String, icon: ImageVector, enabled: Boolean, primary: Boolean, pal: Pal, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(14.dp)
+    val bg = if (primary) pal.accent else Color.Transparent
+    val fg = if (primary) pal.onAccent else pal.label
     Row(
-        modifier.height(44.dp).clip(shape).border(1.dp, pal.separator, shape).clickable(onClick = onClick),
+        modifier.height(46.dp).graphicsLayer { alpha = if (enabled) 1f else 0.4f }.clip(shape).background(bg)
+            .then(if (primary) Modifier else Modifier.border(1.dp, pal.separator, shape))
+            .pressClick(enabled = enabled, onClick = onClick),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center,
     ) {
-        if (icon != null) { Icon(icon, null, tint = pal.label, modifier = Modifier.size(17.dp)); Spacer(Modifier.width(7.dp)) }
-        else { CopyGlyph(pal.label); Spacer(Modifier.width(7.dp)) }
-        Text(label, color = pal.label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+        Icon(icon, null, tint = fg, modifier = Modifier.size(17.dp))
+        Spacer(Modifier.width(7.dp))
+        Text(label, color = fg, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -606,11 +841,19 @@ private fun CopyGlyph(color: Color, size: Dp = 16.dp) {
     }
 }
 
+/** A tiny static capsule showing how full a tank is (stock list). */
 @Composable
-private fun EmptyResult(text: String, pal: Pal, error: Boolean = false) {
-    Box(Modifier.fillMaxWidth().heightIn(min = 120.dp).padding(20.dp), contentAlignment = Alignment.CenterStart) {
-        Text(text, color = if (error) pal.error else pal.tertiary, fontSize = 15.sp)
-    }
+private fun MiniTank(fill: Float, pal: Pal) {
+    val f = animateFloatAsState(fill.coerceIn(0f, 1f), tween(600, easing = FastOutSlowInEasing), label = "mini")
+    Box(
+        Modifier.size(width = 30.dp, height = 18.dp).drawBehind {
+            val r = CornerRadius(size.height / 2f)
+            drawRoundRect(pal.field, cornerRadius = r)
+            val fh = size.height * f.value
+            drawRoundRect(Brush.verticalGradient(listOf(Yellow, Color(0xFFFF9F0A))), Offset(0f, size.height - fh), Size(size.width, fh), r)
+            drawRoundRect(pal.separator, cornerRadius = r, style = Stroke(1.dp.toPx()))
+        },
+    )
 }
 
 @Composable
@@ -619,24 +862,26 @@ private fun StockCard(
     onPick: (Tank) -> Unit, onShare: () -> Unit, onCopy: () -> Unit, nameOf: (Tank) -> String,
 ) {
     Column(Modifier.fillMaxWidth().background(pal.card, CardShape).border(1.dp, pal.separator, CardShape).padding(vertical = 6.dp)) {
-        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 6.dp, top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(start = 18.dp, end = 6.dp, top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("Today's stock", color = pal.label, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
             TextButton(onClick = onCopy) { Text("Copy", color = pal.secondary, fontWeight = FontWeight.SemiBold, fontSize = 13.sp) }
             TextButton(onClick = onShare) { Text("Share", color = pal.label, fontWeight = FontWeight.SemiBold, fontSize = 13.sp) }
         }
         stock.forEachIndexed { i, e ->
-            if (i > 0) HLine(pal, inset = 16.dp)
+            if (i > 0) HLine(pal, inset = 18.dp)
+            val sel = e.tank.id == selectedId
+            val rowBg = animateColorAsState(if (sel) pal.accentSoft else Color.Transparent, tween(240), label = "stockRow")
             Row(
-                Modifier.fillMaxWidth().clickable { onPick(e.tank) }.padding(horizontal = 16.dp, vertical = 11.dp),
+                Modifier.fillMaxWidth().drawBehind { drawRect(rowBg.value) }.clickable { onPick(e.tank) }.padding(horizontal = 18.dp, vertical = 11.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(Modifier.size(6.dp).background(if (e.tank.id == selectedId) Yellow else Color.Transparent, CircleShape))
-                Spacer(Modifier.width(10.dp))
+                MiniTank((e.volume / capacity(e.tank)).toFloat(), pal)
+                Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text(nameOf(e.tank), color = pal.label, fontSize = 14.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text("${dipFmt.format(e.dip)} cm · ${timeFmt.format(Date(e.at))}", color = pal.tertiary, fontSize = 12.sp)
                 }
-                Text("${volFmt0.format(e.volume)} L", color = pal.label, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                Text("${volFmt0.format(e.volume)} L", color = pal.label, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, style = TextStyle(fontFeatureSettings = Tabular))
             }
         }
         val totals = productTotals(stock)
@@ -684,66 +929,114 @@ private fun HLine(pal: Pal, inset: Dp = 0.dp) {
     Box(Modifier.fillMaxWidth().padding(horizontal = inset).height(1.dp).background(pal.separator))
 }
 
+/** Round check that pops in with a spring. */
 @Composable
-private fun ManageChartsDialog(
+private fun PopCheck(checked: Boolean, pal: Pal) {
+    val s = animateFloatAsState(if (checked) 1f else 0f, spring(dampingRatio = 0.45f, stiffness = 500f), label = "check")
+    Box(
+        Modifier.size(26.dp).drawBehind {
+            val r = size.minDimension / 2f
+            drawCircle(pal.tertiary.copy(alpha = 0.6f), r - 1.dp.toPx(), style = Stroke(1.6.dp.toPx()))
+            val k = s.value
+            if (k > 0.01f) drawCircle(Yellow, r * k.coerceAtMost(1.1f))
+        },
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            Icons.Default.Check, null, tint = Ink,
+            modifier = Modifier.size(16.dp).graphicsLayer { val k = s.value; scaleX = k; scaleY = k; alpha = k.coerceIn(0f, 1f) },
+        )
+    }
+}
+
+@Composable
+private fun ManageChartsScreen(
     tanks: List<Tank>,
     selectedIds: SnapshotStateList<String>,
     productNames: SnapshotStateMap<String, String>,
     pal: Pal,
     onDismiss: () -> Unit,
+    onFind: () -> Unit,
     onSave: () -> Unit,
 ) {
     val checked = remember { mutableStateListOf<String>().apply { addAll(selectedIds) } }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = pal.card,
-        title = { Text("My charts", color = pal.label, fontWeight = FontWeight.SemiBold) },
-        text = {
-            Column(Modifier.height(440.dp)) {
-                Text("Pick the charts used at your outlet and name each product. Only these appear on the main screen.", color = pal.secondary, fontSize = 13.sp, lineHeight = 18.sp)
-                Spacer(Modifier.height(10.dp))
-                androidx.compose.foundation.lazy.LazyColumn {
-                    items(tanks.size) { index ->
-                        val chart = tanks[index]
-                        val isChecked = chart.id in checked
-                        Row(
-                            Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
-                                .clickable { if (isChecked) checked.remove(chart.id) else checked.add(chart.id) }
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Checkbox(
-                                checked = isChecked,
-                                onCheckedChange = { value -> if (value) { if (chart.id !in checked) checked.add(chart.id) } else checked.remove(chart.id) },
-                                colors = CheckboxDefaults.colors(checkedColor = Yellow, checkmarkColor = Color(0xFF111113), uncheckedColor = pal.tertiary),
-                            )
-                            Column(Modifier.weight(1f)) {
-                                Text(chart.label, color = pal.label, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                                Text("P1 ${chart.p1Cm} · P2 ${chart.p2Cm} · Max dip ${chart.maxDipCm} cm", color = pal.tertiary, fontSize = 12.sp)
-                                if (isChecked) {
-                                    BasicTextField(
-                                        value = productNames[chart.id] ?: "",
-                                        onValueChange = { productNames[chart.id] = it.take(32) },
-                                        singleLine = true,
-                                        textStyle = TextStyle(color = pal.label, fontSize = 13.sp, fontWeight = FontWeight.Medium),
-                                        cursorBrush = SolidColor(pal.label),
-                                        modifier = Modifier.fillMaxWidth().padding(top = 6.dp, end = 8.dp).background(pal.field, RoundedCornerShape(8.dp)).padding(horizontal = 10.dp, vertical = 8.dp),
-                                        decorationBox = { inner -> Box { if ((productNames[chart.id] ?: "").isEmpty()) Text("Product name, e.g. Petrol", color = pal.tertiary, fontSize = 13.sp); inner() } },
-                                    )
-                                }
-                            }
-                        }
+    BackHandler(onBack = onDismiss)
+    Column(Modifier.fillMaxSize().background(pal.bg).safeDrawingPadding()) {
+        Row(Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onDismiss) { Icon(Icons.Default.ArrowBack, "Back", tint = pal.label) }
+            Column(Modifier.weight(1f).padding(start = 4.dp)) {
+                Text("My charts", color = pal.label, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                AnimatedContent(checked.size, transitionSpec = { (fadeIn() + slideInVertically { -it / 2 }) togetherWith fadeOut() }, label = "count") { n ->
+                    Text(if (n == 0) "None picked · all charts show" else "$n picked", color = pal.tertiary, fontSize = 13.sp)
+                }
+            }
+            Box(
+                Modifier.padding(end = 10.dp).height(40.dp).clip(CircleShape).background(Yellow)
+                    .pressClick { selectedIds.clear(); selectedIds.addAll(checked); onSave() }.padding(horizontal = 20.dp),
+                contentAlignment = Alignment.Center,
+            ) { Text("Save", color = Ink, fontSize = 15.sp, fontWeight = FontWeight.Bold) }
+        }
+        Text(
+            "Pick the charts used at your outlet and name each product. Only these appear on the main screen.",
+            color = pal.secondary, fontSize = 13.sp, lineHeight = 18.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+        )
+        LazyColumn(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            item(key = "find") {
+                Row(
+                    Modifier.fillMaxWidth().enterStagger(0).clip(RoundedCornerShape(20.dp)).background(pal.accentSoft)
+                        .pressClick(scaleTo = 0.97f, onClick = onFind).padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(Modifier.size(34.dp).background(Yellow, CircleShape), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.Search, null, tint = Ink, modifier = Modifier.size(19.dp))
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("Not sure which chart is yours?", color = pal.label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Find my chart from two readings", color = pal.secondary, fontSize = 12.sp)
                     }
                 }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = { selectedIds.clear(); selectedIds.addAll(checked); onSave() }) {
-                Text("Save", color = pal.label, fontWeight = FontWeight.SemiBold)
+            items(tanks.size, key = { tanks[it].id }) { index ->
+                val chart = tanks[index]
+                val isChecked = chart.id in checked
+                val stroke = animateColorAsState(if (isChecked) Yellow else pal.separator, tween(200), label = "rowStroke")
+                Column(
+                    Modifier.fillMaxWidth().enterStagger(index.coerceAtMost(8)).clip(RoundedCornerShape(20.dp)).background(pal.card)
+                        .drawBehind { drawRoundRect(stroke.value, cornerRadius = CornerRadius(20.dp.toPx()), style = Stroke(1.5.dp.toPx())) }
+                        .clickable { if (isChecked) checked.remove(chart.id) else checked.add(chart.id) }
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        PopCheck(isChecked, pal)
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(chart.label, color = pal.label, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (!chart.hasDeadwood) { NoDwBadge(pal); Spacer(Modifier.width(6.dp)) }
+                                Text("P1 ${chart.p1Cm} · P2 ${chart.p2Cm} · Max dip ${chart.maxDipCm} cm", color = pal.tertiary, fontSize = 12.sp)
+                            }
+                        }
+                    }
+                    AnimatedVisibility(
+                        isChecked,
+                        enter = fadeIn(tween(200)) + expandVertically(tween(240)),
+                        exit = fadeOut(tween(120)) + shrinkVertically(tween(200)),
+                    ) {
+                        BasicTextField(
+                            value = productNames[chart.id] ?: "",
+                            onValueChange = { productNames[chart.id] = it.take(32) },
+                            singleLine = true,
+                            textStyle = TextStyle(color = pal.label, fontSize = 14.sp, fontWeight = FontWeight.Medium),
+                            cursorBrush = SolidColor(pal.label),
+                            modifier = Modifier.fillMaxWidth().padding(start = 38.dp, top = 10.dp).background(pal.field, RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 10.dp),
+                            decorationBox = { inner -> Box { if ((productNames[chart.id] ?: "").isEmpty()) Text("Product name, e.g. Petrol", color = pal.tertiary, fontSize = 14.sp); inner() } },
+                        )
+                    }
+                }
             }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", color = pal.secondary) } },
-    )
+        }
+    }
 }
 
 private fun rateApp(context: Context) {

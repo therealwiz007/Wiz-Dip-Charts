@@ -12,12 +12,14 @@ class Tank(
     val lengthCm: Double,
     val p1Cm: Int,
     val p2Cm: Int,
-    val deadwoodLitres: Int,
+    /** Null when the source chart does not state a deadwood. */
+    val deadwoodLitres: Int?,
     val volumes: DoubleArray,
 ) {
     val maxDipCm: Int get() = volumes.size - 1
     /** Display name, e.g. "20 KL - 625×211 DW: 18 L" (length × diameter, deadwood). */
-    val label: String get() = "$kl KL - ${fmtCm(lengthCm)}×${fmtCm(diameterCm)} DW: $deadwoodLitres L"
+    val label: String get() = "$kl KL - ${fmtCm(lengthCm)}×${fmtCm(diameterCm)} DW: ${deadwoodLitres?.let { "$it L" } ?: "N/A"}"
+    val hasDeadwood: Boolean get() = deadwoodLitres != null
     val dimensionsLabel: String get() = "${fmtCm(diameterCm)} × ${fmtCm(lengthCm)} cm"
 }
 
@@ -98,6 +100,23 @@ object Calibration {
         return DipForVolumeResult.Ok(dip, target)
     }
 
+    /** One candidate in a "Find my chart" search. [error] is the mean absolute difference in litres. */
+    data class ChartMatch(val tank: Tank, val error: Double, val volumes: List<Double>)
+
+    /**
+     * Ranks the charts of capacity [kl] by how closely their volumes at [dips] match the
+     * dealer's own chart readings [litres]. Charts that do not reach a dip are skipped.
+     */
+    fun findMatches(tanks: List<Tank>, kl: Int, dips: List<Int>, litres: List<Double>): List<ChartMatch> {
+        require(dips.size == litres.size && dips.isNotEmpty())
+        return tanks.filter { it.kl == kl && dips.all { d -> d in 0..it.maxDipCm } }
+            .map { t ->
+                val vols = dips.map { t.volumes[it] }
+                ChartMatch(t, vols.indices.sumOf { kotlin.math.abs(vols[it] - litres[it]) } / dips.size, vols)
+            }
+            .sortedBy { it.error }
+    }
+
     fun load(context: Context): List<Tank> {
         val json = context.assets.open("charts.json").bufferedReader().use { it.readText() }
         val arr = JSONArray(json)
@@ -114,7 +133,7 @@ object Calibration {
                 lengthCm = o.getDouble("lengthCm"),
                 p1Cm = o.getInt("p1Cm"),
                 p2Cm = o.getInt("p2Cm"),
-                deadwoodLitres = o.getInt("deadwoodLitres"),
+                deadwoodLitres = if (o.isNull("deadwoodLitres")) null else o.getInt("deadwoodLitres"),
                 volumes = values,
             )
             require(tank.kl > 0 && tank.diameterCm > 0 && tank.lengthCm > 0) { "Invalid tank dimensions for ${tank.kl} KL." }
@@ -122,7 +141,7 @@ object Calibration {
             require(kotlin.math.abs(values.first()) < 1e-9) { "Chart for ${tank.kl} KL must start at zero litres." }
             require(values.all { it.isFinite() && it >= 0.0 }) { "Invalid chart volume in ${tank.kl} KL." }
             require((1 until values.size).all { index -> values[index] > values[index - 1] }) { "Chart for ${tank.kl} KL must be strictly increasing." }
-            require(tank.deadwoodLitres >= 0 && tank.deadwoodLitres < values.last()) { "Invalid deadwood for ${tank.kl} KL." }
+            tank.deadwoodLitres?.let { dw -> require(dw >= 0 && dw < values.last()) { "Invalid deadwood for ${tank.kl} KL." } }
             tank
         }
         require(loaded.map { it.id }.distinct().size == loaded.size) { "Duplicate chart identifiers." }

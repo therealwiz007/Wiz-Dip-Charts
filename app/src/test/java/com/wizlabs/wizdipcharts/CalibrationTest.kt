@@ -73,4 +73,20 @@ class CalibrationTest {
         assertTrue(Calibration.compute(tank, "") is DipResult.Empty)
         assertTrue(Calibration.compute(tank, "1.2.3") is DipResult.Invalid)
     }
+
+    @Test fun labelShowsNaWhenNoDeadwood() {
+        val t = Tank("x", "x", 20, 210.0, 600.0, 0, 0, null, volumes)
+        assertEquals("20 KL - 600×210 DW: N/A", t.label)
+        assertEquals("20 KL - 625×210 DW: 18 L", tank.label)
+    }
+
+    @Test fun findMatchesRanksClosestChartFirst() {
+        val a = Tank("a", "a", 20, 210.0, 600.0, 0, 0, 18, DoubleArray(211) { it * 100.0 })
+        val b = Tank("b", "b", 20, 210.0, 600.0, 0, 0, null, DoubleArray(211) { it * 101.0 })
+        val c = Tank("c", "c", 15, 194.0, 550.0, 0, 0, 11, DoubleArray(195) { it * 101.0 })
+        val r = Calibration.findMatches(listOf(a, b, c), 20, listOf(50, 100), listOf(5050.0, 10100.0))
+        assertEquals(listOf("b", "a"), r.map { it.tank.id })
+        assertEquals(0.0, r[0].error, 1e-9)
+        assertEquals(75.0, r[1].error, 1e-9)
+    }
 }

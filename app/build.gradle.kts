@@ -12,8 +12,8 @@ android {
         applicationId = "com.wizlabs.wizdipcharts"
         minSdk = 24
         targetSdk = 36
-        versionCode = 3
-        versionName = "1.5"
+        versionCode = 4
+        versionName = "1.6"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

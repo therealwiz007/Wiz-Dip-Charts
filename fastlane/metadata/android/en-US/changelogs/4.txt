@@ -1,0 +1,7 @@
+Wiz Dip Charts 1.6:
+• New charts: IOC 20 KL (600×210, 2 cm table) and Underground 70 KL (1097.28×289.56, DW 81 L)
+• Find my chart: pick your tank size, enter your chart's litres at dip 50 and 100, and the app finds the matching chart
+• Charts without a stated deadwood now show "DW: N/A"
+• Live tank view: fuel rises to your dip with a gentle ripple and the litres count up
+• New icon and smoother motion
+• Still fully offline; existing chart results are unchanged

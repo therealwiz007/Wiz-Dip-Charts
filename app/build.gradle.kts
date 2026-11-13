@@ -12,8 +12,10 @@ android {
         applicationId = "com.wizlabs.wizdipcharts"
         minSdk = 24
         targetSdk = 36
-        versionCode = 4
-        versionName = "1.6"
+        versionCode = 5
+        versionName = "1.7"
+        // Ship only English resources (drops dozens of unused library translations).
+        resourceConfigurations += listOf("en")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -47,9 +49,11 @@ android {
 }
 
 dependencies {
-    val composeBom = platform("androidx.compose:compose-bom:2024.10.01")
+    val composeBom = platform("androidx.compose:compose-bom:2025.02.00")
     implementation(composeBom)
-    implementation("androidx.activity:activity-compose:1.9.3")
+    // Installs bundled baseline profiles on sideloaded installs too: faster start, smoother first scrolls.
+    implementation("androidx.profileinstaller:profileinstaller:1.4.0")
+    implementation("androidx.activity:activity-compose:1.10.1")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material3:material3")

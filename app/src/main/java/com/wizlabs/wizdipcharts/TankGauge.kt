@@ -56,8 +56,8 @@ internal fun TankGauge(level: Float, pal: Pal, error: Boolean, modifier: Modifie
         val ticker = launch {
             val start = System.nanoTime()
             while (isActive) {
-                phase.floatValue = ((System.nanoTime() - start) / 1_000_000L).toFloat() / 1000f
-                delay(TICK_MS)
+                androidx.compose.runtime.withFrameNanos { now -> phase.floatValue = ((now - start) / 1_000_000L).toFloat() / 1000f }
+                delay(TICK_MS - 8L) // + vsync wait ≈ TICK_MS
             }
         }
         amp.animateTo(1f, tween(450))

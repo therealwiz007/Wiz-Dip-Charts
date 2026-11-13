@@ -1,5 +1,6 @@
 package com.wizlabs.wizdipcharts
 
+import androidx.compose.animation.SizeTransform
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
@@ -149,7 +150,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         val tanks = Calibration.load(this)
-        setContent { CappedFontScale { WizTheme { TankDipApp(tanks) } } }
+        setContent { CappedFontScale { WizTheme { CompositionLocalProvider(LocalBackPeek provides remember { BackPeek() }) { TankDipApp(tanks) } } } }
     }
 }
 
@@ -260,6 +261,9 @@ fun TankDipApp(tanks: List<Tank>) {
 
     var showManageCharts by remember { mutableStateOf(!chartsConfigured) }
     var showFindChart by rememberSaveable { mutableStateOf(false) }
+    val peek = LocalBackPeek.current
+    // Once the back transition has played, drop the peek so the next visit starts full size.
+    LaunchedEffect(showManageCharts, showFindChart) { delay(650); if (peek != null && !peek.dragging) peek.reset() }
     var renameChartId by remember { mutableStateOf<String?>(null) }
     var renameValue by remember { mutableStateOf("") }
     var volumeText by rememberSaveable { mutableStateOf("") }
@@ -497,6 +501,7 @@ fun TankDipApp(tanks: List<Tank>) {
             enter = slideInHorizontally(tween(340, easing = FastOutSlowInEasing)) { it } + fadeIn(tween(200)),
             exit = slideOutHorizontally(tween(280)) { it } + fadeOut(tween(220)),
         ) {
+          Box(Modifier.backPeek("manage")) {
             ManageChartsScreen(
                 tanks, selectedIds, productNames, pal,
                 onDismiss = { showManageCharts = false },
@@ -513,6 +518,7 @@ fun TankDipApp(tanks: List<Tank>) {
                 haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                 showManageCharts = false
             }
+          }
         }
 
         /* ---- Find my chart: match the dealer's readings against every chart ---- */
@@ -521,6 +527,7 @@ fun TankDipApp(tanks: List<Tank>) {
             enter = slideInHorizontally(tween(340, easing = FastOutSlowInEasing)) { it } + fadeIn(tween(200)),
             exit = slideOutHorizontally(tween(280)) { it } + fadeOut(tween(220)),
         ) {
+          Box(Modifier.backPeek("find")) {
             FindChartScreen(
                 tanks, pal,
                 isSaved = { t -> chartsConfigured && t.id in selectedIds },
@@ -536,6 +543,7 @@ fun TankDipApp(tanks: List<Tank>) {
                 selectedChartId = t.id
                 haptics.performHapticFeedback(HapticFeedbackType.LongPress)
             }
+          }
         }
     }
 
@@ -769,29 +777,35 @@ private fun ResultArea(
     }
 }
 
-/** Big number that counts from the last shown value (0 at first) to [target]. */
+/**
+ * Big result number. Characters roll like an odometer and only the digits that changed move,
+ * so typing a dip costs a few short animations instead of re-formatting the text every frame.
+ */
 @Composable
 private fun CountUpText(target: Double, format: (Double) -> String, pal: Pal) {
-    val progress = remember { Animatable(0f) }
-    var from by remember { mutableDoubleStateOf(0.0) }
-    var to by remember { mutableDoubleStateOf(target) }
-    LaunchedEffect(target) {
-        val p = progress.value
-        from = if (p >= 1f) to else from + (to - from) * p
-        to = target
-        progress.snapTo(0f)
-        progress.animateTo(1f, tween(700, easing = FastOutSlowInEasing))
+    val style = TextStyle(color = pal.label, fontSize = 52.sp, fontWeight = FontWeight.Bold, letterSpacing = (-2).sp, fontFeatureSettings = Tabular)
+    val text = format(target)
+    if (!motionAllowed()) { Text(text, style = style, maxLines = 1); return }
+    var prev by remember { mutableDoubleStateOf(target) }
+    val up = target >= prev
+    LaunchedEffect(target) { prev = target }
+    Row {
+        val n = text.length
+        for (k in 0 until n) {
+            // keyed by position from the right so units stay units when the length changes
+            androidx.compose.runtime.key(n - k) {
+                AnimatedContent(
+                    text[k],
+                    transitionSpec = {
+                        val dir = if (up) 1 else -1
+                        (slideInVertically(spring(dampingRatio = 0.8f, stiffness = 500f)) { dir * it / 2 } + fadeIn(tween(160))) togetherWith
+                            (slideOutVertically(tween(160)) { -dir * it / 2 } + fadeOut(tween(120))) using SizeTransform(clip = false)
+                    },
+                    label = "digit",
+                ) { c -> Text(c.toString(), style = style, maxLines = 1) }
+            }
+        }
     }
-    val p = progress.value
-    val shown = when {
-        to != target -> if (p >= 1f) to else from + (to - from) * p // effect not started yet: hold the old value
-        p >= 1f -> target                                           // finished: the exact result
-        else -> from + (to - from) * p
-    }
-    Text(
-        format(shown), color = pal.label, fontSize = 52.sp, fontWeight = FontWeight.Bold, letterSpacing = (-2).sp, maxLines = 1,
-        style = TextStyle(fontFeatureSettings = Tabular),
-    )
 }
 
 @Composable
@@ -960,7 +974,7 @@ private fun ManageChartsScreen(
     onSave: () -> Unit,
 ) {
     val checked = remember { mutableStateListOf<String>().apply { addAll(selectedIds) } }
-    BackHandler(onBack = onDismiss)
+    WizBackHandler("manage", onBack = onDismiss)
     Column(Modifier.fillMaxSize().background(pal.bg).safeDrawingPadding()) {
         Row(Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onDismiss) { Icon(Icons.Default.ArrowBack, "Back", tint = pal.label) }

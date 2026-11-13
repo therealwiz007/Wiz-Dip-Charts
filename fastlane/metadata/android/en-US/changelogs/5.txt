@@ -1,0 +1,5 @@
+Wiz Dip Charts 1.7:
+• Results roll like an odometer as you type the dip
+• Predictive back: My charts and Find my chart shrink as you swipe back
+• Smoother tank ripples, lighter on battery
+• Faster start and smaller download

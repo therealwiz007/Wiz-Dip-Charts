@@ -84,7 +84,7 @@ internal fun FindChartScreen(
     onDismiss: () -> Unit,
     onAdd: (Tank) -> Unit,
 ) {
-    BackHandler(onBack = onDismiss)
+    WizBackHandler("find", onBack = onDismiss)
     val capacities = remember(tanks) { tanks.map { it.kl }.distinct().sorted() }
     var kl by rememberSaveable { mutableStateOf<Int?>(null) }
     var at50 by rememberSaveable { mutableStateOf("") }

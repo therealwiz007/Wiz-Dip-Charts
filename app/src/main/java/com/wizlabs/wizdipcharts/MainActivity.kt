@@ -218,7 +218,7 @@ private val timeFmt get() = SimpleDateFormat("h:mm a", Locale.getDefault())
 private val dateFmt get() = SimpleDateFormat("d MMM yyyy, h:mm a", Locale.getDefault())
 
 private fun capacity(t: Tank) = t.volumes[t.maxDipCm]
-/** Name without the KL prefix, e.g. "625×211 DW: 18 L". */
+/** Name without the KL prefix, e.g. "211×625 DW: 18 L". */
 private fun chartTitle(t: Tank) = t.label.substringAfter(" - ", t.label)
 
 /** One tank's entry in today's stock list. */

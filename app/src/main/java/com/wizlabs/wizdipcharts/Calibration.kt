@@ -17,8 +17,8 @@ class Tank(
     val volumes: DoubleArray,
 ) {
     val maxDipCm: Int get() = volumes.size - 1
-    /** Display name, e.g. "20 KL - 625×211 DW: 18 L" (length × diameter, deadwood). */
-    val label: String get() = "$kl KL - ${fmtCm(lengthCm)}×${fmtCm(diameterCm)} DW: ${deadwoodLitres?.let { "$it L" } ?: "N/A"}"
+    /** Display name, e.g. "20 KL - 211×625 DW: 18 L" (diameter × length, deadwood). */
+    val label: String get() = "$kl KL - ${fmtCm(diameterCm)}×${fmtCm(lengthCm)} DW: ${deadwoodLitres?.let { "$it L" } ?: "N/A"}"
     val hasDeadwood: Boolean get() = deadwoodLitres != null
     val dimensionsLabel: String get() = "${fmtCm(diameterCm)} × ${fmtCm(lengthCm)} cm"
 }

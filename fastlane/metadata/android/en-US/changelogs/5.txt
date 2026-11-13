@@ -3,3 +3,4 @@ Wiz Dip Charts 1.7:
 • Predictive back: My charts and Find my chart shrink as you swipe back
 • Smoother tank ripples, lighter on battery
 • Faster start and smaller download
+• Tank sizes now read Diameter × Length

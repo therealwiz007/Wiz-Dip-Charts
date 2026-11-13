@@ -6,7 +6,7 @@ Android tank dip / calibration lookup app by Wiz Labs.
 - Minimal black-and-yellow Wiz design; light and dark follow the device setting.
 - Dip → Volume lookup and reverse Volume → Dip lookup for the bundled 10, 15, 20, 50 and 70 KL charts.
 - One-tap tank switching from a row of chips; each tank shows its product name (Petrol, Diesel or custom).
-- Tanks are named by capacity, length × diameter (cm) and deadwood, e.g. `20 KL - 625×211 DW: 18 L`.
+- Tanks are named by capacity, diameter × length (cm) and deadwood, e.g. `20 KL - 211×625 DW: 18 L`.
 - Each tank remembers its own last dip, so switching tanks never loses an entry.
 - Fill level bar with % full and space left (capacity minus chart volume) for planning tanker unloads.
 - **Today's stock**: every tank dipped today, with per-product totals; copy or share the report as text.

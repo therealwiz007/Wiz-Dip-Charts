@@ -76,8 +76,8 @@ class CalibrationTest {
 
     @Test fun labelShowsNaWhenNoDeadwood() {
         val t = Tank("x", "x", 20, 210.0, 600.0, 0, 0, null, volumes)
-        assertEquals("20 KL - 600×210 DW: N/A", t.label)
-        assertEquals("20 KL - 625×210 DW: 18 L", tank.label)
+        assertEquals("20 KL - 210×600 DW: N/A", t.label)
+        assertEquals("20 KL - 210×625 DW: 18 L", tank.label)
     }
 
     @Test fun findMatchesRanksClosestChartFirst() {

@@ -1,0 +1,26 @@
+<!doctype html>
+<!--
+  Play screenshot frame, 1080 x 1920 (WIZ_3APPS_MASTER_PLAN.md 2.5).
+  Usage: shot-frame.html?img=raw/1.png&cap=Dip%20in%20cm.%20Litres%20in%20a%20second.&lang=en
+  Render: "Google Chrome" --headless --hide-scrollbars --window-size=1080,1920 --screenshot=out.png "file://.../shot-frame.html?img=...&cap=..."
+  Caption band is 360 px (18.75% of the height, under the 20% limit). Yellow band, black text.
+  No ranking, price or call-to-action words in captions. Captions are in CAPTIONS.md.
+-->
+<html><head><meta charset="utf-8"><style>
+html,body{margin:0;width:1080px;height:1920px;overflow:hidden;background:#0B0B0C}
+.band{height:360px;background:#FFC400;color:#111113;display:flex;align-items:center;justify-content:center;padding:0 80px;box-sizing:border-box;text-align:center;
+  font:700 74px/1.12 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Devanagari","Noto Sans",sans-serif;letter-spacing:-1px}
+.band.hi{font-size:68px;line-height:1.3;letter-spacing:0}
+.phone{height:1560px;display:flex;align-items:flex-start;justify-content:center;padding-top:40px;box-sizing:border-box}
+.phone img{height:1480px;border-radius:48px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+</style></head><body>
+<div class="band" id="cap"></div>
+<div class="phone"><img id="shot" alt=""></div>
+<script>
+const q=new URLSearchParams(location.search);
+const cap=document.getElementById('cap');
+cap.textContent=q.get('cap')||'Caption';
+if(q.get('lang')==='hi'){cap.classList.add('hi');document.documentElement.lang='hi';}
+document.getElementById('shot').src=q.get('img')||'';
+</script>
+</body></html>

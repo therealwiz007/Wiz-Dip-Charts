@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tank Dip Chart Calculator for Petrol Pumps - Wiz Dip Charts</title>
+<meta name="description" content="Convert a dip rod reading in cm to litres for 10, 15, 20, 50 and 70 KL underground tanks. Works offline on Android. For petrol pump stock and tanker unloading.">
+<link rel="canonical" href="https://therealwiz007.github.io/Wiz-Dip-Charts/">
+<link rel="alternate" hreflang="en" href="https://therealwiz007.github.io/Wiz-Dip-Charts/">
+<link rel="alternate" hreflang="hi" href="https://therealwiz007.github.io/Wiz-Dip-Charts/hi/">
+<link rel="alternate" hreflang="x-default" href="https://therealwiz007.github.io/Wiz-Dip-Charts/">
+<link rel="icon" href="site/icon-96.png">
+<meta name="theme-color" content="#FFC400">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Wiz Dip Charts: tank dip chart calculator for petrol pumps">
+<meta property="og:description" content="Dip in cm to litres for 10, 15, 20, 50 and 70 KL tanks. Works offline on Android.">
+<meta property="og:url" content="https://therealwiz007.github.io/Wiz-Dip-Charts/">
+<meta property="og:image" content="https://therealwiz007.github.io/Wiz-Dip-Charts/site/og-image.png">
+<meta property="og:locale" content="en_IN">
+<meta property="og:site_name" content="Wiz Labs">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Wiz Dip Charts",
+  "operatingSystem": "Android 7.0 and up",
+  "applicationCategory": "UtilitiesApplication",
+  "description": "Tank dip chart calculator for petrol pumps: dip in cm to litres for 10, 15, 20, 50 and 70 KL tanks.",
+  "softwareVersion": "1.8",
+  "inLanguage": "en",
+  "url": "https://therealwiz007.github.io/Wiz-Dip-Charts/",
+  "installUrl": "https://play.google.com/store/apps/details?id=com.wizlabs.wizdipcharts",
+  "image": "https://therealwiz007.github.io/Wiz-Dip-Charts/site/og-image.png",
+  "screenshot": "https://therealwiz007.github.io/Wiz-Dip-Charts/site/shot-1.jpg",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "INR" },
+  "author": { "@type": "Organization", "name": "Wiz Labs", "url": "https://therealwiz007.github.io/" }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    { "@type": "Question", "name": "How do I work out tank stock from a dip reading?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Pick your tank's chart, type the dip in centimetres (decimals such as 87.4 are fine) and the app shows the volume in litres from the dip chart, with % full and the space left." } },
+    { "@type": "Question", "name": "Which tank sizes are included?",
+      "acceptedAnswer": { "@type": "Answer", "text": "19 built-in dip charts for 10 KL, 15 KL, 20 KL, 50 KL and 70 KL horizontal tanks, including IS 2166 charts." } },
+    { "@type": "Question", "name": "How do I know which dip chart is mine?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Open Find my chart and enter the litres your paper chart shows at 50 cm and 100 cm. The app finds the matching chart. Always check it against the approved calibration chart for your tank." } },
+    { "@type": "Question", "name": "Does it work without internet?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Yes. All charts are stored in the app, and your dip readings and stock stay on your phone. No account and no login." } },
+    { "@type": "Question", "name": "Is deadwood added or subtracted?",
+      "acceptedAnswer": { "@type": "Answer", "text": "No. Volumes are read straight from the chart and interpolated between whole centimetres. Deadwood is shown as tank information only." } }
+  ]
+}
+</script>
+<style>
+:root{--bg:#F6F6F3;--card:#fff;--line:#E7E6E0;--text:#111113;--muted:#5C5C63;--accent:#FFC400;--ink:#111113}
+@media (prefers-color-scheme:dark){:root{--bg:#0B0B0C;--card:#151517;--line:#242428;--text:#F4F4F2;--muted:#B4B4BA}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif}
+main{max-width:760px;margin:0 auto;padding:24px 16px 40px}
+header{display:flex;align-items:center;gap:14px}
+header img{width:56px;height:56px;border-radius:14px}
+h1{font-size:1.7rem;line-height:1.2;margin:0;letter-spacing:-.02em}
+.pitch{color:var(--muted);margin:14px 0 18px}
+.play{display:inline-flex;align-items:center;gap:10px;background:var(--ink);color:#fff;text-decoration:none;padding:12px 20px;border-radius:14px;font-weight:600;border:1px solid var(--accent);transition:transform .15s}
+.play:active{transform:scale(.97)}
+.play b{color:var(--accent)}
+.lang{margin-left:12px;color:var(--muted)}
+.shots{display:flex;gap:10px;overflow-x:auto;margin:26px 0 8px;padding-bottom:6px;scroll-snap-type:x mandatory}
+.shots img{width:180px;height:320px;flex:none;border-radius:16px;border:1px solid var(--line);scroll-snap-align:start;background:var(--card)}
+section{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:18px 20px;margin-top:16px}
+h2{font-size:1.15rem;margin:0 0 8px}
+ul{padding-left:20px;margin:0}
+li{margin:4px 0}
+details{border-top:1px solid var(--line);padding:10px 0}
+details:first-of-type{border-top:0}
+summary{cursor:pointer;font-weight:600}
+a{color:inherit}
+.small{color:var(--muted);font-size:.9rem}
+footer{max-width:760px;margin:0 auto;padding:0 16px 32px;color:var(--muted);font-size:.85rem}
+@media (prefers-reduced-motion:reduce){.play{transition:none}}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <img src="site/icon-96.png" alt="Wiz Dip Charts icon" width="56" height="56">
+  <h1>Wiz Dip Charts: tank dip chart calculator</h1>
+</header>
+<p class="pitch">Type the dip rod reading in centimetres and read the tank stock in litres from the dip chart of your underground tank. Built for petrol pump dealers, managers, DSMs and supervisors.</p>
+<a class="play" href="https://play.google.com/store/apps/details?id=com.wizlabs.wizdipcharts&amp;referrer=utm_source%3Dwizlabs_site%26utm_medium%3Dlanding%26utm_campaign%3DWiz-Dip-Charts">Get it on <b>Google Play</b></a>
+<a class="lang" href="hi/" hreflang="hi" lang="hi">हिंदी में पढ़ें</a>
+
+<div class="shots">
+  <img src="site/shot-1.jpg" alt="Wiz Dip Charts main screen: a dip in cm shows the litres for the selected tank" width="180" height="320" loading="lazy">
+  <img src="site/shot-2.jpg" alt="Wiz Dip Charts tank charts for 10, 15, 20, 50 and 70 KL tanks" width="180" height="320" loading="lazy">
+  <img src="site/shot-3.jpg" alt="Wiz Dip Charts screen with today's stock for every tank" width="180" height="320" loading="lazy">
+</div>
+
+<section>
+  <h2>What it does</h2>
+  <ul>
+    <li>Dip to volume: dip in cm (decimals allowed) to litres from the chart.</li>
+    <li>Volume to dip: enter litres and see the dip to expect, before and after a tanker decants.</li>
+    <li>19 built-in dip charts for 10, 15, 20, 50 and 70 KL horizontal tanks, including IS 2166 charts.</li>
+    <li>Find my chart from the litres your paper chart shows at 50 cm and 100 cm.</li>
+    <li>My charts: keep only your tanks and name them Petrol (MS), Diesel (HSD) or anything you like.</li>
+    <li>% full and space left, so you know before you order or unload a tanker.</li>
+    <li>Today's stock for every tank you dipped, with totals per product. Copy it or share it on WhatsApp.</li>
+    <li>Works without internet. No account, no login.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Questions</h2>
+  <details><summary>How do I work out tank stock from a dip reading?</summary><p>Pick your tank's chart, type the dip in centimetres (decimals such as 87.4 are fine) and the app shows the volume in litres from the dip chart, with % full and the space left.</p></details>
+  <details><summary>Which tank sizes are included?</summary><p>19 built-in dip charts for 10 KL, 15 KL, 20 KL, 50 KL and 70 KL horizontal tanks, including IS 2166 charts.</p></details>
+  <details><summary>How do I know which dip chart is mine?</summary><p>Open Find my chart and enter the litres your paper chart shows at 50 cm and 100 cm. The app finds the matching chart. Always check it against the approved calibration chart for your tank.</p></details>
+  <details><summary>Does it work without internet?</summary><p>Yes. All charts are stored in the app, and your dip readings and stock stay on your phone. No account and no login.</p></details>
+  <details><summary>Is deadwood added or subtracted?</summary><p>No. Volumes are read straight from the chart and interpolated between whole centimetres. Deadwood is shown as tank information only.</p></details>
+</section>
+
+<section>
+  <h2>More from Wiz Labs</h2>
+  <ul>
+    <li><a href="https://play.google.com/store/apps/details?id=com.wizlabs.fueldensity">Wiz Fuel Density</a>: petrol and diesel density at 15°C.</li>
+    <li><a href="https://play.google.com/store/apps/details?id=com.aashi.mockgps">Wiz Mock GPS</a>: mock location for app testing.</li>
+  </ul>
+</section>
+</main>
+<footer>
+  <p><a href="privacy-policy.html">Privacy policy</a> · Contact: <a href="mailto:blazewizofficial@gmail.com">blazewizofficial@gmail.com</a></p>
+  <p>Wiz Dip Charts is an independent tool by Wiz Labs. It is not affiliated with or approved by any oil company. Google Play is a trademark of Google LLC.</p>
+</footer>
+</body>
+</html>

@@ -11,7 +11,7 @@ Wiz Dip Charts is an offline calculator. The app does not require an account and
 The app has the Internet permission. This version uses it only to let Google Play check for and deliver app updates and to show Google Play's rating card. This version does not show ads and does not send your readings, locations or any identifier to us or to an advertising service. A future version may show ads from Google AdMob; this policy will be updated before that happens.
 
 ## Information processed on your device
-The app stores your last selected tank size and last dip entry in local Android app preferences so they can be restored on your next use. Calibration chart data is bundled with the app. This information remains on your device and is not transmitted by the app.
+The app stores your last selected tank size and last dip entry in local Android app preferences so they can be restored on your next use. Calibration chart data is bundled with the app. The app itself does not transmit this information. If Android backup is on for your Google account, Android may include the App's settings (your chosen charts, product names and last dips) in your device backup, so they come back after a reinstall or on a new phone. That backup is made and stored by Google under your Google account; we never receive it. You can turn it off in your device's backup settings.
 
 ## Sharing and external links
 If you choose Share App, Android opens the system share sheet with the app's Google Play listing URL. If you choose Rate App, the app opens the Google Play listing (or a browser fallback). Those destinations are handled by Google or the app you choose; their own privacy policies apply.
@@ -24,4 +24,4 @@ This policy may be updated if app functionality changes. For privacy questions, 
 
 **Important:** Re-check this policy if analytics, crash reporting, advertising, cloud sync, or any other network service is added in a future version.
 
-_Change log: 16 November 2026 (1.8): Internet permission for Google Play updates, no ads. Previous version: 30 October 2026._
+_Change log: 16 November 2026 (1.8): Internet permission for Google Play updates, no ads; Android backup of the app's settings. Previous version: 30 October 2026._

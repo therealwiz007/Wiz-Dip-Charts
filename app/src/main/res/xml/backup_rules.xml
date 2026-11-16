@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 11 and lower: Google Auto Backup. Include-only: the user's charts, product names and
+     last dips (tankdip_prefs) come back after a reinstall or on a new phone. wiz_update,
+     wiz_review and wiz_ads are left out on purpose. -->
+<full-backup-content>
+    <include domain="sharedpref" path="tankdip_prefs.xml" />
+</full-backup-content>

@@ -1,3 +1,4 @@
 Wiz Dip Charts 1.8:
 • Tells you when a new version is ready, and updates in the background
+• Your charts and settings now survive reinstall and phone change (Google backup)
 • Small fixes and a smoother share message

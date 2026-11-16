@@ -3,6 +3,7 @@ package com.wizlabs.wizdipcharts
 import androidx.compose.animation.SizeTransform
 import android.content.ActivityNotFoundException
 import android.content.Context
+import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -46,6 +47,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
@@ -67,6 +69,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
@@ -84,6 +87,8 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -126,6 +131,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import com.wizlabs.ads.WizAds
+import com.wizlabs.ads.compose.WizBannerAd
+import com.wizlabs.update.WizReview
+import com.wizlabs.update.WizUpdate
 import java.text.DecimalFormat
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -145,12 +154,49 @@ private const val APP_ID = "com.wizlabs.wizdipcharts"
 /** Play Store listing URL; works once the app listing is published. */
 private const val SHARE_LINK = "https://play.google.com/store/apps/details?id=$APP_ID"
 
+/** Share link with a referrer, so Play Console shows in-app shares as an acquisition source. */
+private const val SHARE_APP_LINK = "$SHARE_LINK&referrer=utm_source%3Dshare%26utm_medium%3Dinapp"
+private const val SHARE_APP_TEXT =
+    "Wiz Dip Charts: tank dip chart on your phone. Dip (cm) to litres for 10-70 KL tanks. टैंक डिप चार्ट ऐप। $SHARE_APP_LINK"
+
 class MainActivity : ComponentActivity() {
+    private var update: WizUpdate? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        installAds(this)
         val tanks = Calibration.load(this)
         setContent { CappedFontScale { WizTheme { CompositionLocalProvider(LocalBackPeek provides remember { BackPeek() }) { TankDipApp(tanks) } } } }
+        update = createWizUpdate(this)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        WizAds.onActivityStart(this)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        update?.onResume()
+        // First resume after a share sheet closes: the task is finished, a good moment for the review card.
+        if (DipUi.reviewAfterShare) { DipUi.reviewAfterShare = false; askForReview(this) }
+    }
+
+    override fun onPause() {
+        update?.onPause()
+        super.onPause()
+    }
+
+    override fun onStop() {
+        WizAds.onActivityStop()
+        super.onStop()
+    }
+
+    override fun onDestroy() {
+        update?.onDestroy()
+        update = null
+        super.onDestroy()
     }
 }
 
@@ -182,13 +228,13 @@ internal class Pal(
 internal val Yellow = Color(0xFFFFC400)
 internal val Ink = Color(0xFF111113)
 
-private val LightPal = Pal(
+internal val LightPal = Pal(
     bg = Color(0xFFF6F6F3), card = Color.White, field = Color(0xFFEDEDE7), raised = Color.White,
     label = Ink, secondary = Color(0xFF5C5C63), tertiary = Color(0xFF8E8E95),
     separator = Color(0xFFE7E6E0), accent = Yellow, onAccent = Ink,
     accentSoft = Color(0xFFFFF4CC), error = Color(0xFFC2410C), dark = false,
 )
-private val DarkPal = Pal(
+internal val DarkPal = Pal(
     bg = Color(0xFF0B0B0C), card = Color(0xFF151517), field = Color(0xFF1D1D20), raised = Color(0xFF34343A),
     label = Color(0xFFF4F4F2), secondary = Color(0xFFB4B4BA), tertiary = Color(0xFF77777F),
     separator = Color(0xFF242428), accent = Yellow, onAccent = Ink,
@@ -269,6 +315,14 @@ fun TankDipApp(tanks: List<Tank>) {
     var volumeText by rememberSaveable { mutableStateOf("") }
     var reverse by rememberSaveable { mutableStateOf(false) }
     var menuOpen by remember { mutableStateOf(false) }
+    var inputFocused by remember { mutableStateOf(false) }
+    val privacyOptionsRequired by WizAds.privacyOptionsRequired.collectAsState()
+
+    // The update popup waits while the user is busy (plan 3.8); the ad gate gets the screen name.
+    SideEffect { DipUi.busy = showManageCharts || showFindChart || inputFocused || renameChartId != null }
+    LaunchedEffect(showManageCharts, showFindChart) {
+        WizAds.onScreen(if (showFindChart) "find" else if (showManageCharts) "manage" else "main")
+    }
 
     fun productOf(t: Tank) = productNames[t.id]?.trim().orEmpty()
     fun selectTank(t: Tank) {
@@ -305,10 +359,18 @@ fun TankDipApp(tanks: List<Tank>) {
         clipboard.setText(AnnotatedString(text))
         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
         if (toast != null) Toast.makeText(context, toast, Toast.LENGTH_SHORT).show()
+        (context as? Activity)?.let(::askForReview)
     }
     fun share(title: String, text: String) {
         haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+        DipUi.reviewAfterShare = true
         shareText(context, title, text)
+    }
+
+    // One review "use event" per valid result, at most once per tank per minute (WizReview rate-limits by key).
+    val validResult = if (reverse) back is DipForVolumeResult.Ok else forward is DipResult.Ok
+    LaunchedEffect(tank.id, reverse, dipText, volumeText, validResult) {
+        if (validResult) { delay(1500); WizReview.event(context, "tank:" + tank.id) }
     }
 
     Box(Modifier.fillMaxSize().background(pal.bg)) {
@@ -336,8 +398,12 @@ fun TankDipApp(tanks: List<Tank>) {
                     ) {
                         MenuItem(Icons.Default.List, "My charts", pal) { menuOpen = false; showManageCharts = true }
                         MenuItem(Icons.Default.Search, "Find my chart", pal) { menuOpen = false; showFindChart = true }
-                        MenuItem(Icons.Default.Share, "Share app", pal) { menuOpen = false; shareText(context, "Share app", "Wiz Dip Charts – quick tank calibration lookup from dip reading.\n$SHARE_LINK") }
+                        MenuItem(Icons.Default.Share, "Share app", pal) { menuOpen = false; shareText(context, "Share app", SHARE_APP_TEXT) }
                         MenuItem(Icons.Default.Star, "Rate app", pal) { menuOpen = false; rateApp(context) }
+                        // Only when UMP says it is required; never while ads are off.
+                        if (privacyOptionsRequired) {
+                            MenuItem(Icons.Default.Lock, "Privacy options", pal) { menuOpen = false; (context as? Activity)?.let(WizAds::showPrivacyOptions) }
+                        }
                     }
                 }
             }
@@ -403,7 +469,7 @@ fun TankDipApp(tanks: List<Tank>) {
                 label = "mode",
                 modifier = Modifier.enterStagger(4),
             ) { rev ->
-                Column(Modifier.fillMaxWidth().background(pal.card, CardShape).border(1.dp, pal.separator, CardShape)) {
+                Column(Modifier.fillMaxWidth().background(pal.card, CardShape).border(1.dp, pal.separator, CardShape).onFocusChanged { inputFocused = it.hasFocus }) {
                     if (!rev) {
                         NumberField(
                             label = "Dip", hint = "max ${tank.maxDipCm} cm", value = dipText, unit = "cm", maxLength = 7, pal = pal,
@@ -493,6 +559,11 @@ fun TankDipApp(tanks: List<Tank>) {
                 color = pal.tertiary, fontSize = 12.sp, lineHeight = 17.sp,
                 modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 14.dp).enterStagger(6),
             )
+        }
+
+        /* ---- Ad slot: bottom banner, main screen only. Renders nothing while ads are off. ---- */
+        if (!showManageCharts && !showFindChart && !inputFocused) {
+            WizBannerAd("main", Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 8.dp))
         }
 
         /* ---- My charts: full-screen page that slides in ---- */

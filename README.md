@@ -14,12 +14,12 @@ Android tank dip / calibration lookup app by Wiz Labs.
 - Decimal dip interpolation between adjacent whole-centimetre chart rows.
 - Tank-specific P1, P2 and deadwood information shown with the selected tank.
 - Offline calibration data stored in `app/src/main/assets/charts.json`.
-- No ads, account, network permission, or analytics SDK.
+- No account or analytics. Works offline. Internet permission is used for Google Play updates; the ad SDK is linked but switched off (`wizAdsEnabled=false`).
 
 ## App identity
 - Display name: Wiz Dip Charts
 - Application ID: `com.wizlabs.wizdipcharts`
-- Version: 1.5 (versionCode 3)
+- Version: 1.8 (versionCode 6)
 - Minimum Android: 7.0 (API 24)
 - Target Android: 16 (API 36)
 

@@ -1,1 +1,1 @@
-Offline tank dip and calibration chart calculator.
+Tank dip chart calculator: dip in cm to litres for 10, 15, 20, 50 & 70 KL tanks

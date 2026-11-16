@@ -1,0 +1,3 @@
+Wiz Dip Charts 1.8:
+• Tells you when a new version is ready, and updates in the background
+• Small fixes and a smoother share message

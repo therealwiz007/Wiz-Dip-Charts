@@ -78,6 +78,8 @@ class CalibrationTest {
         val t = Tank("x", "x", 20, 210.0, 600.0, 0, 0, null, volumes)
         assertEquals("20 KL - 210×600 DW: N/A", t.label)
         assertEquals("20 KL - 210×625 DW: 18 L", tank.label)
+        val tagged = Tank("y", "y", 15, 190.5, 556.0, 0, 0, null, volumes, tag = "2003-04")
+        assertEquals("15 KL - 2003-04 · 190.5×556 DW: N/A", tagged.label)
     }
 
     @Test fun findMatchesRanksClosestChartFirst() {

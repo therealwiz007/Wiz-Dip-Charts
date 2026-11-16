@@ -3,7 +3,7 @@ Wiz Dip Charts turns a dip rod reading into tank stock in seconds. Type the dip 
 What it does
 • Dip to volume: enter the dip in cm (decimals allowed, like 87.4) and get litres from the chart.
 • Volume to dip: enter litres and see the dip you should read. Useful before and after a tanker decants.
-• 19 built-in dip charts for 10 KL, 15 KL, 20 KL, 50 KL and 70 KL horizontal tanks, including IS 2166 charts.
+• 21 built-in dip charts for 10 KL, 15 KL, 20 KL, 50 KL and 70 KL horizontal tanks, including IS 2166 charts.
 • Find my chart: not sure which chart is yours? Enter the litres your paper chart shows at 50 cm and 100 cm, and the app finds the matching one.
 • My charts: keep only your own tanks on the main screen and name each one Petrol (MS), Diesel (HSD) or anything you like.
 • Fill level and space left: see % full and how many litres of space are free before you order or unload a tanker.

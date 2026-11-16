@@ -15,10 +15,12 @@ class Tank(
     /** Null when the source chart does not state a deadwood. */
     val deadwoodLitres: Int?,
     val volumes: DoubleArray,
+    /** Optional short tag shown in the label, e.g. the chart's year "2003-04". */
+    val tag: String? = null,
 ) {
     val maxDipCm: Int get() = volumes.size - 1
-    /** Display name, e.g. "20 KL - 211×625 DW: 18 L" (diameter × length, deadwood). */
-    val label: String get() = "$kl KL - ${fmtCm(diameterCm)}×${fmtCm(lengthCm)} DW: ${deadwoodLitres?.let { "$it L" } ?: "N/A"}"
+    /** Display name, e.g. "20 KL - 211×625 DW: 18 L" or "20 KL - 2003-04 · 210×600 DW: N/A" (tag, diameter × length, deadwood). */
+    val label: String get() = "$kl KL - ${tag?.let { "$it · " } ?: ""}${fmtCm(diameterCm)}×${fmtCm(lengthCm)} DW: ${deadwoodLitres?.let { "$it L" } ?: "N/A"}"
     val hasDeadwood: Boolean get() = deadwoodLitres != null
     val dimensionsLabel: String get() = "${fmtCm(diameterCm)} × ${fmtCm(lengthCm)} cm"
 }
@@ -135,6 +137,7 @@ object Calibration {
                 p2Cm = o.getInt("p2Cm"),
                 deadwoodLitres = if (o.isNull("deadwoodLitres")) null else o.getInt("deadwoodLitres"),
                 volumes = values,
+                tag = if (o.has("tag") && !o.isNull("tag")) o.getString("tag").trim().ifEmpty { null } else null,
             )
             require(tank.kl > 0 && tank.diameterCm > 0 && tank.lengthCm > 0) { "Invalid tank dimensions for ${tank.kl} KL." }
             require(values.size >= 2 && o.optInt("maxDipCm", values.size - 1) == values.size - 1) { "Invalid dip range for ${tank.kl} KL." }

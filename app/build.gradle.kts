@@ -21,8 +21,8 @@ android {
         applicationId = "com.wizlabs.wizdipcharts"
         minSdk = 24
         targetSdk = 36
-        versionCode = 6
-        versionName = "1.8"
+        versionCode = 7
+        versionName = "1.9"
         // Ship only English resources (drops dozens of unused library translations).
         resourceConfigurations += listOf("en")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

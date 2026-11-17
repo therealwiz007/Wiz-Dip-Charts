@@ -1,11 +1,19 @@
-Wiz Dip Charts turns a dip rod reading into tank stock in seconds. Type the dip in centimetres and read the volume in litres from the dip chart (calibration chart) for your underground tank. It is built for petrol pump dealers, managers, DSMs and supervisors who take dip readings every day for stock, DSR and tanker unloading.
+Wiz Dip Charts turns a dip rod reading into tank stock in seconds. Type the dip in centimetres and read the volume in litres from the dip chart (calibration chart) of your underground tank. It is built for petrol pump dealers, managers, DSMs and supervisors who take dip readings every day for stock, DSR and tanker unloading.
+
+Dip charts for IOCL, BPCL, HPCL, Jio-bp and Nayara petrol pumps
+Underground tanks at Indian Oil (IOCL), Bharat Petroleum (BPCL), Hindustan Petroleum (HPCL), Jio-bp, Nayara Energy and Shell outlets are horizontal cylinders, and most of their dip charts are made to IS 2166. Wiz Dip Charts includes 21 of these charts:
+• 10 KL dip chart: 193×373.4 (IOC 2018 revised), 194×375 and 210×301 partition tank.
+• 15 KL dip chart: IOC, IOC 2018 revised, 191×551, 194×550, M.S. 191×556 and the 2003-04 MS chart (190.5×556).
+• 20 KL dip chart: 210×600, 210×623.4 (IOC after 2018), 210×625, 211×625, the IOC Northern Region IS 2166 table and the 2003-04 HSD chart.
+• 50 KL dip chart: 300×750 (2014) and 300×1050.
+• 70 KL dip chart: 300×1050 and the underground 70 KL IS 2166 chart.
+Not sure which one is your tank? Use Find my chart (below).
 
 What it does
 • Dip to volume: enter the dip in cm (decimals allowed, like 87.4) and get litres from the chart.
 • Volume to dip: enter litres and see the dip you should read. Useful before and after a tanker decants.
-• 21 built-in dip charts for 10 KL, 15 KL, 20 KL, 50 KL and 70 KL horizontal tanks, including IS 2166 charts.
-• Find my chart: not sure which chart is yours? Enter the litres your paper chart shows at 50 cm and 100 cm, and the app finds the matching one.
-• My charts: keep only your own tanks on the main screen and name each one Petrol (MS), Diesel (HSD) or anything you like.
+• Find my chart: enter the litres your paper dip chart shows at 50 cm and 100 cm, and the app finds the matching chart.
+• My charts: keep only your own tanks on the main screen and name each one Petrol (MS), Diesel (HSD), Power or anything you like.
 • Fill level and space left: see % full and how many litres of space are free before you order or unload a tanker.
 • Today's stock: every tank you dipped today, with totals per product. Copy it or share it on WhatsApp as text.
 • Tank details: diameter, length and deadwood are shown with each chart.
@@ -13,14 +21,14 @@ What it does
 • Light and dark theme.
 
 Works without internet
-All charts are stored in the app. Your dip readings and stock stay on your phone. No account, no login.
+All dip charts are stored in the app. Your dip readings and stock stay on your phone. No account, no login.
 
 Who uses it
-Petrol pump (fuel station, retail outlet) dealers and staff, depot staff, fleet and industrial sites with underground diesel tanks, and auditors checking stock.
+Petrol pump (fuel station, retail outlet) dealers and staff of any oil company, depot staff, fleet and industrial sites with underground diesel tanks, and auditors checking stock.
 
 Accuracy note
 The app reads values straight from the chart and interpolates between whole centimetres. Deadwood is shown as tank information and is not added or subtracted. Charts differ from tank to tank: always match the chart with the approved calibration chart for your tank before you use the numbers in official records.
 
-Wiz Dip Charts is an independent tool by Wiz Labs. It is not affiliated with or approved by any oil company.
+Wiz Dip Charts is an independent tool by Wiz Labs. It is not affiliated with, endorsed by or approved by IOCL, BPCL, HPCL, Jio-bp, Nayara Energy, Shell or any other oil company. Company names are used only to say which petrol pump tanks the charts are for.
 
 Also from Wiz Labs: Wiz Fuel Density, for density at 15°C.

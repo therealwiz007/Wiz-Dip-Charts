@@ -1,1 +1,1 @@
-Tank dip chart calculator: dip in cm to litres for 10, 15, 20, 50 & 70 KL tanks
+Dip chart for IOCL, BPCL, HPCL pump tanks: dip cm to litres, 10 to 70 KL

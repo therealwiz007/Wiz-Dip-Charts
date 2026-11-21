@@ -8,11 +8,11 @@ Current: update 1.10 (versionCode 8), stages 2, 3, 5 done in one session.
 - Added fastlane changelog `8.txt`.
 
 ## Pending
-- CI (`.github/workflows/android.yml`) builds signed AAB after push: check run result. Next action: confirm green run, validate AAB.
+- CI run on a2caa69: success, artifacts "Wiz Dip Charts (1.10) AAB" and APK built. Next action: download AAB and validate, then upload.
 - Not tested on phone/emulator (debug build only).
 - Play Console upload: not started (stopped by request).
 
-Remaining: CI AAB check, phone smoke test, Play Console upload + release approval.
+Remaining: phone smoke test, AAB validation, Play Console upload + release approval.
 
 ## Decisions taken
 - Changelog text copied from wiz-fuel-density 1.6 style.

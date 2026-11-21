@@ -1,0 +1,3 @@
+Wiz Dip Charts 1.10:
+• Ads library updated to the latest version
+• Small fixes and stability improvements

@@ -21,8 +21,8 @@ android {
         applicationId = "com.wizlabs.wizdipcharts"
         minSdk = 24
         targetSdk = 36
-        versionCode = 7
-        versionName = "1.9"
+        versionCode = 8
+        versionName = "1.10"
         // Ship only English resources (drops dozens of unused library translations).
         resourceConfigurations += listOf("en")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -83,7 +83,7 @@ dependencies {
     implementation("com.google.android.play:app-update:2.1.0")
     implementation("com.google.android.play:review:2.0.2")
     // GMA Next-Gen SDK and UMP, linked but switched off (wizAdsEnabled=false): no init, no requests.
-    implementation("com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk:1.6.0")
+    implementation("com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk:1.7.0")
     implementation("com.google.android.ump:user-messaging-platform:4.0.0")
     testImplementation("junit:junit:4.13.2")
 }
